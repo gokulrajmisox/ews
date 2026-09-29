@@ -301,6 +301,12 @@ import requests
 
 @router.post("/telegram_alert")
 async def send_telegram_alert(patient_id: int):
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+        
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
     
