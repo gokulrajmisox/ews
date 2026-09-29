@@ -1,4 +1,4 @@
-.PHONY: install test check run reproduce
+.PHONY: install test check run reproduce research
 
 install:
 	python -m pip install --upgrade pip
@@ -16,3 +16,6 @@ run:
 
 reproduce:
 	python run.py --reproduce
+
+research:
+	python -m experiments.run_research

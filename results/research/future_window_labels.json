@@ -1,0 +1,11 @@
+{
+  "status": "blocked_missing_data",
+  "experiment": "future_window_proxy_labels",
+  "reason": "Raw PhysioNet records are not present. Place the permitted dataset at data/raw/set-a and data/raw/Outcomes-train.txt before running data-dependent experiments.",
+  "prerequisites": [
+    "data/raw/set-a/*.txt",
+    "data/raw/Outcomes-train.txt"
+  ],
+  "baseline_preserved": true,
+  "disclaimer": "No data-dependent conclusion was computed."
+}

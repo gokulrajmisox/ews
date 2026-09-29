@@ -51,3 +51,35 @@ class OutcomeLabeler:
         df["saps"] = outcome["saps"]
         df["length_of_stay"] = outcome["length_of_stay"]
         return df
+
+    def assign_future_window_proxy_labels(
+        self,
+        df_patient_features: pd.DataFrame,
+        patient_id: int,
+        event_proxy_hours: float,
+        horizon_hours: float,
+    ) -> pd.DataFrame:
+        """Assign a research-only future-window label using an endpoint proxy.
+
+        The challenge data does not expose an exact deterioration/death timestamp.
+        Therefore ``event_proxy_hours`` must be the available telemetry/outcome
+        endpoint, and the result is explicitly a proxy target rather than a true
+        early-warning label. Rows are positive only when a death outcome exists
+        and the proxy endpoint falls strictly after the current time and within
+        the requested horizon.
+        """
+        if horizon_hours <= 0:
+            raise ValueError("horizon_hours must be positive")
+        if "eval_time" not in df_patient_features.columns:
+            raise ValueError("Future-window labels require an eval_time column")
+        outcome = self.get_patient_outcome(patient_id)
+        df = df_patient_features.copy()
+        df["future_window_proxy_target"] = 0
+        if outcome["in_hospital_death"] == 1:
+            delta = float(event_proxy_hours) - df["eval_time"].astype(float)
+            df.loc[(delta > 0.0) & (delta <= float(horizon_hours)), "future_window_proxy_target"] = 1
+        df["future_window_horizon_hours"] = float(horizon_hours)
+        df["future_window_proxy_disclaimer"] = (
+            "Proxy endpoint only; exact deterioration timestamp unavailable."
+        )
+        return df

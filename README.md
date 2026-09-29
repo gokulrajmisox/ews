@@ -300,7 +300,22 @@ python run.py --evaluate    # chronological held-out replay
 python run.py --ablation    # component ablation study
 python run.py --noise-test  # synthetic noise stress test
 python run.py --all         # all pipeline stages, then server
+make research              # five-track non-destructive research suite
 ```
+
+## Research experiments
+
+The repository includes a non-destructive research suite covering the requested improvement tracks: expanded alert-policy sweep, class-weight/XGBoost tuning, feature-group and top-k ablations, future-window proxy labels, and an optional model ensemble. Run it with:
+
+```bash
+python -m experiments.run_research
+# or
+make research
+```
+
+The completed policy sweep evaluates **500** valid operating points on the checked-in retrospective replay artifact and writes its Pareto frontier to [`results/research/policy_sweep_expanded.json`](results/research/policy_sweep_expanded.json). The current configuration remains the baseline; no threshold or model is promoted automatically.
+
+The other four tracks are implemented but currently report `blocked_missing_data` because this checkout does not contain the excluded raw PhysioNet files. Their exact prerequisites and scientific limitations are documented in [`docs/Research_Experiments.md`](docs/Research_Experiments.md). No synthetic or fabricated metrics are used to fill the gap.
 
 ## Configuration
 
@@ -320,8 +335,8 @@ Environment variables are documented in [`.env.example`](.env.example):
 |---|---|---|
 | `GEMINI_API_KEY` | Legacy `/api/chat` route and alternate AI module | Only for AI features |
 | `GEMINI_MODEL` | Gemini model selection | Optional; defaults differ by route |
-| `SUPABASE_URL` | Alternate `ai.py` persistence path | Only for experimental persistence |
-| `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_ANON_KEY` | Alternate `ai.py` persistence path | Only for experimental persistence |
+| `SUPABASE_URL` | Alternate `legacy/ai.py` persistence path | Only for experimental persistence |
+| `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_ANON_KEY` | Alternate `legacy/ai.py` persistence path | Only for experimental persistence |
 | `TELEGRAM_BOT_TOKEN` | Telegram alert route | Only for Telegram notifications |
 | `TELEGRAM_CHAT_ID` | Telegram alert destination | Only for Telegram notifications |
 
@@ -334,7 +349,7 @@ The code implements some defensive behavior, but it is **not production-hardened
 - **Input validation:** Pydantic validates noise-test and alternate AI request payloads; the legacy chat route accepts multipart text/file input.
 - **Streaming validation:** Incremental requests validate patient IDs, finite numeric values, non-empty observation batches, and the configured 48-hour horizon; out-of-order batches are rejected.
 - **Secrets:** Environment variables are used for optional external services; `.env` is ignored by Git.
-- **Database security:** `schema.sql` enables Supabase RLS and creates an anonymous insert policy for chat messages. This applies only if that optional schema is deployed.
+- **Database security:** `supabase/schema.sql` enables Supabase RLS and creates an anonymous insert policy for chat messages. This applies only if that optional schema is deployed.
 - **Authentication/authorization:** **Not implemented** for the default API.
 - **CORS:** The FastAPI app defaults to localhost origins and can be configured with `CORS_ORIGINS`.
 - **Rate limiting:** **Not implemented.**
