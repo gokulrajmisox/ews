@@ -89,17 +89,14 @@
           <button onclick="switchTab('timeline')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="timeline">
             <i data-lucide="line-chart" class="w-4 h-4"></i> Patient Timeline & Sim
           </button>
-          <button onclick="switchTab('explanation')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="explanation">
-            <i data-lucide="sparkles" class="w-4 h-4"></i> Alert Explanation (SHAP)
-          </button>
           <button onclick="switchTab('performance')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="performance">
             <i data-lucide="target" class="w-4 h-4"></i> Performance
           </button>
           <button onclick="switchTab('ablation')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="ablation">
             <i data-lucide="layers" class="w-4 h-4"></i> Ablation Study
           </button>
-          <button onclick="switchTab('noiselab')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="noiselab">
-            <i data-lucide="sliders" class="w-4 h-4"></i> Noise Lab
+          <button onclick="switchTab('aichat')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="aichat">
+            <i data-lucide="bot" class="w-4 h-4"></i> AI Chat
           </button>
         </div>
       </div>
@@ -402,87 +399,40 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- PAGE 4: ALERT EXPLANATION (SHAP & TRUST)   -->
+    <!-- PAGE 4: AI CHAT (GEMINI)                   -->
     <!-- ========================================== -->
-    <section id="view-explanation" class="space-y-6 hidden">
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <div>
-            <h1 class="text-2xl font-bold text-slate-900">Clinical Alert Explanation & Trust Audit</h1>
-            <p class="text-xs text-slate-500">Full SHAP feature contribution analysis and telemetry credibility provenance.</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-600 font-medium">Inspecting:</span>
-            <span id="explanation-patient-badge" class="px-3 py-1 bg-slate-900 text-white font-mono text-xs rounded-lg">Patient 132539</span>
-          </div>
+    <section id="view-aichat" class="space-y-6 hidden h-[calc(100vh-12rem)]">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-full flex flex-col">
+        <h1 class="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+          <i data-lucide="bot" class="w-6 h-6 text-cyan-600"></i> AI Clinical Assistant
+        </h1>
+        <p class="text-xs text-slate-500 mb-4">Powered by Gemini. Upload a patient CSV (PhysioNet format) or chat directly.</p>
+
+        <!-- CSV Upload -->
+        <div class="mb-4 flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <input type="file" id="chat-csv-upload" accept=".csv" class="text-xs file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100" />
+          <span id="csv-upload-status" class="text-xs text-slate-500 italic">No file selected</span>
         </div>
 
-        <!-- Alert Status Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <div class="text-xs font-semibold text-slate-500 uppercase">Calibrated Risk</div>
-            <div class="text-2xl font-bold text-slate-900 mt-1" id="exp-risk-val">--%</div>
-          </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <div class="text-xs font-semibold text-slate-500 uppercase">Evidence Score</div>
-            <div class="text-2xl font-bold text-slate-900 mt-1" id="exp-evidence-val">--</div>
-          </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <div class="text-xs font-semibold text-slate-500 uppercase">Evaluation Hour</div>
-            <div class="text-2xl font-bold text-slate-900 mt-1" id="exp-hour-val">--h</div>
-          </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <div class="text-xs font-semibold text-slate-500 uppercase">Estimated Lead Time</div>
-            <div class="text-2xl font-bold text-cyan-600 mt-1" id="exp-lead-val">--h</div>
-            <div class="text-[10px] text-slate-400">Relative to outcome proxy</div>
-          </div>
-        </div>
-
-        <!-- Clinical Rationale Bullets -->
-        <div class="bg-cyan-50/50 border border-cyan-200 rounded-xl p-4 mb-6">
-          <h3 class="text-xs font-bold text-cyan-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <i data-lucide="check-circle" class="w-4 h-4 text-cyan-600"></i> Synthesized Clinical Decision Rationale
-          </h3>
-          <div id="explanation-bullets" class="space-y-1 text-xs text-cyan-950 font-medium">
-            <!-- Populated by JS -->
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- SHAP Top Contributing Factors -->
-          <div class="space-y-3">
-            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <i data-lucide="bar-chart-2" class="w-4 h-4 text-cyan-600"></i> Top SHAP Feature Contributions to Risk
-            </h3>
-            <p class="text-xs text-slate-500">Computed via TreeExplainer on past-only feature representations.</p>
-            <div id="shap-factors-container" class="space-y-2.5">
-              <!-- Populated by JS -->
+        <!-- Chat History -->
+        <div id="chat-history" class="flex-1 overflow-y-auto mb-4 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4 custom-scrollbar">
+          <!-- Welcome message -->
+          <div class="flex gap-3">
+            <div class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-700 flex-shrink-0">
+              <i data-lucide="bot" class="w-4 h-4"></i>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-4 py-2 text-sm text-slate-800 max-w-[85%] shadow-sm">
+              Hello! I am your AI Clinical Assistant. You can ask me questions about early warning systems, or upload a patient's CSV file and I will analyze it for you.
             </div>
           </div>
+        </div>
 
-          <!-- Layer 1: Downweighted / Suspicious Readings Audit -->
-          <div class="space-y-3">
-            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <i data-lucide="shield-alert" class="w-4 h-4 text-amber-600"></i> Layer 1 Trust Audit: Downweighted Telemetry
-            </h3>
-            <p class="text-xs text-slate-500">Readings downweighted by conservative plausibility, jumps, or discordance checks.</p>
-            <div class="border border-slate-200 rounded-xl overflow-hidden max-h-80 overflow-y-auto custom-scrollbar">
-              <table class="w-full text-left text-xs">
-                <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold sticky top-0">
-                  <tr>
-                    <th class="px-3 py-2">Time</th>
-                    <th class="px-3 py-2">Parameter</th>
-                    <th class="px-3 py-2">Value</th>
-                    <th class="px-3 py-2">Credibility</th>
-                    <th class="px-3 py-2">Reason</th>
-                  </tr>
-                </thead>
-                <tbody id="suspicious-readings-body" class="divide-y divide-slate-100">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <!-- Chat Input -->
+        <div class="flex gap-2">
+          <input type="text" id="chat-input" placeholder="Type your message..." class="flex-1 rounded-xl border-slate-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 text-sm px-4 py-2 border outline-none" onkeypress="if(event.key === 'Enter') sendChatMessage()" />
+          <button onclick="sendChatMessage()" class="bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl px-4 py-2 flex items-center justify-center transition" id="chat-send-btn">
+            <i data-lucide="send" class="w-4 h-4"></i>
+          </button>
         </div>
       </div>
     </section>
@@ -621,64 +571,7 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- PAGE 7: NOISE LAB                          -->
-    <!-- ========================================== -->
-    <section id="view-noiselab" class="space-y-6 hidden">
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-        <h1 class="text-2xl font-bold text-slate-900 mb-1 flex items-center gap-2">
-          <i data-lucide="sliders" class="w-6 h-6 text-cyan-600"></i> Noise Stress Lab & Resilience Testing
-        </h1>
-        <p class="text-xs text-slate-500 mb-6">Simulates real-world ICU sensor noise (missingness, motion spikes, timing jitter) on in-memory test streams without modifying disk data.</p>
-
-        <!-- Noise Controls Deck -->
-        <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 mb-6 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <!-- Noise intensity slider -->
-            <div class="flex-1 space-y-1">
-              <div class="flex justify-between text-xs font-semibold text-slate-700">
-                <span>Sensor Corruption Intensity:</span>
-                <span id="noise-intensity-label" class="text-cyan-600 font-bold">50%</span>
-              </div>
-              <input type="range" id="noise-intensity-slider" min="10" max="100" step="5" value="50" oninput="updateNoiseSlider(this.value)"
-                class="w-full accent-cyan-600 cursor-pointer" />
-            </div>
-            <!-- Checkbox toggles -->
-            <div class="flex items-center gap-4 text-xs font-medium text-slate-700">
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox" id="noise-toggle-missing" checked class="rounded text-cyan-600 focus:ring-cyan-500" />
-                <span>Random Dropouts</span>
-              </label>
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox" id="noise-toggle-spikes" checked class="rounded text-cyan-600 focus:ring-cyan-500" />
-                <span>Transient Spikes</span>
-              </label>
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox" id="noise-toggle-jitter" checked class="rounded text-cyan-600 focus:ring-cyan-500" />
-                <span>Timing Jitter</span>
-              </label>
-            </div>
-            <!-- Action buttons -->
-            <button onclick="triggerNoiseStressTest()" id="noise-run-btn"
-              class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs rounded-lg shadow transition flex items-center gap-2">
-              <i data-lucide="zap" class="w-4 h-4"></i> Run Stress Test
-            </button>
-          </div>
-        </div>
-
-        <!-- Comparative Resilience Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="noise-resilience-cards">
-          <!-- Populated by JS -->
-        </div>
-
-        <!-- Comparison Chart -->
-        <div class="p-4 rounded-xl border border-slate-200 bg-white">
-          <h3 class="text-sm font-bold text-slate-900 mb-2">False Alarm Rate Under Noise (Clean vs Corrupted Telemetry)</h3>
-          <div class="h-64 relative">
-            <canvas id="chart-noise-comparison"></canvas>
-          </div>
-        </div>
-      </div>
-    </section>
+    
 
   </main>
 
