@@ -1,6 +1,3 @@
 {
-  "version": 2,
-  "routes": [
-    { "src": "/(.*)", "dest": "api/index.py" }
-  ]
+  "version": 2
 }
