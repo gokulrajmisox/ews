@@ -314,7 +314,7 @@ async def send_telegram_alert(patient_id: int):
         return {"success": False, "message": "Telegram credentials not configured in environment."}
         
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    text = f"dY"" CRITICAL ALERT: Patient {patient_id} has entered the ALERT state! Immediate review recommended."
+    text = f"🚨 CRITICAL ALERT: Patient {patient_id} has entered the ALERT state! Immediate review recommended."
     
     try:
         resp = requests.post(url, json={"chat_id": chat_id, "text": text})
