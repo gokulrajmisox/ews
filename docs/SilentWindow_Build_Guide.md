@@ -178,7 +178,7 @@ models/feature_names.json
 
 The model produces a raw probability. The calibration layer converts that value into an empirically calibrated risk estimate before it is passed to the sequential policy.
 
-The project also contains an offline grouped retraining benchmark in `model_improvement_report.md`. That benchmark reported ROC-AUC `0.819` and PR-AUC `0.371`, but it is **not** the deployed artifact because the original raw files and the exact production feature contract are not available for a safe drop-in replacement.
+The project also contains an offline grouped retraining benchmark in `reports/model_improvement_report.md`. That benchmark reported ROC-AUC `0.819` and PR-AUC `0.371`, but it is **not** the deployed artifact because the original raw files and the exact production feature contract are not available for a safe drop-in replacement.
 
 ## 8. Step 6 — Accumulate evidence instead of firing on one score
 

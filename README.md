@@ -23,7 +23,7 @@ The repository contains a FastAPI service, a static dashboard, the offline ML/ev
 >
 > The dataset exposes in-hospital outcomes and stay metadata, but not an exact timestamp for physiological collapse or death. Any “lead time” reported by this repository is therefore an **estimated proxy relative to the available outcome/stay endpoint**, not validated time-to-deterioration.
 
-The saved accuracy report also notes that the current service has **no live telemetry-ingestion route** and that the held-out results are not evidence of real-time clinical performance.
+The saved accuracy report also notes that the current service has **no live telemetry-ingestion route** and that the held-out results are not evidence of real-time clinical performance. Detailed reports are grouped under [`docs/reports/`](docs/reports/).
 
 ## Why SilentWindow?
 
@@ -225,7 +225,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/patients/138123/observations \
 
 ### Experimental / not wired into the default app
 
-The repository also contains [`ai.py`](ai.py), an alternate `/api/ai/ask` implementation with Gemini generation and best-effort Supabase persistence. The checked-in default launcher imports `backend.main`, which does **not** mount this router. The root [`main.py`](main.py) references a missing `backend.api.ai` module, so it is not a supported entry point in the current checkout.
+The repository retains [`legacy/ai.py`](legacy/ai.py), an alternate `/api/ai/ask` implementation with Gemini generation and best-effort Supabase persistence. The checked-in default launcher imports `backend.main`, which does **not** mount this router. The root [`main.py`](main.py) is only a compatibility wrapper; it is not the preferred launcher.
 
 ## Quickstart
 
@@ -325,7 +325,7 @@ Environment variables are documented in [`.env.example`](.env.example):
 | `TELEGRAM_BOT_TOKEN` | Telegram alert route | Only for Telegram notifications |
 | `TELEGRAM_CHAT_ID` | Telegram alert destination | Only for Telegram notifications |
 
-Never commit real secrets. The optional Supabase table definition is in [`schema.sql`](schema.sql) and enables row-level security for `ai_chat_messages`; it is not required for the default dashboard.
+Never commit real secrets. The optional Supabase table definition is in [`supabase/schema.sql`](supabase/schema.sql) and enables row-level security for `ai_chat_messages`; it is not required for the default dashboard.
 
 ## Security and operational posture
 
@@ -347,37 +347,25 @@ Do not expose the default service directly to a public network without adding au
 
 ```text
 .
-├── backend/
-│   ├── main.py                 # Supported FastAPI app entry point
-│   └── api/router.py            # Default REST routes and legacy integrations
-├── frontend/
-│   ├── index.html              # Dashboard served by backend.main
-│   └── app.js                  # Dashboard client and charts
-├── ml/
-│   ├── preprocessing.py        # Raw-record parsing and patient splits
-│   ├── trust_layer.py          # Credibility assessment
-│   ├── features.py             # Past-only feature engineering
-│   ├── train.py                # XGBoost training and calibration
-│   ├── replay.py               # Chronological replay engine
-│   ├── evidence_accumulator.py # Sequential state/alert logic
-│   ├── evaluation.py           # Offline metrics and curves
-│   ├── ablation.py              # Component ablation
-│   ├── noise_test.py            # Synthetic corruption experiments
-│   ├── policy_sweep.py          # Alert operating-point analysis
-│   └── explainability.py        # SHAP and trust provenance
+├── backend/                    # Supported FastAPI app and REST routes
+├── frontend/                   # Supported static dashboard
+├── ml/                         # Supported training, replay, and evaluation code
 ├── models/                     # Checked-in model/calibrator artifacts
-├── results/                    # Checked-in saved evaluation artifacts
-├── configs/config.yaml         # Pipeline and alert configuration
-├── tests/                      # Core and API contract tests
+├── results/                    # Current saved evaluation artifacts
+├── configs/                    # Pipeline and alert configuration
+├── tests/                      # Unit and API contract tests
+├── docs/                       # Build guide, reports, diagrams, and archive
+├── supabase/schema.sql         # Optional Supabase chat table/RLS
+├── legacy/                     # Historical modules and superseded artifacts
 ├── run.py                      # CLI and server launcher
-├── Makefile                    # Install, test, check, run, reproduce commands
+├── Makefile                    # Developer commands
 ├── .github/workflows/ci.yml    # Python 3.10–3.12 CI
 ├── Dockerfile                  # Reproducible demo container
-├── schema.sql                  # Optional Supabase chat table/RLS
+├── render.yaml                 # Render deployment blueprint
 └── api/index.py                # Vercel adapter targeting backend.main
 ```
 
-There are also top-level legacy/alternate modules such as `main.py`, `app.js`, `index.html`, `ai.py`, and compatibility scripts. They are not the supported default path unless explicitly wired into a deployment.
+The root is intentionally reserved for project entry points, packaging, deployment, and documentation. Historical or alternate modules are grouped under [`legacy/`](legacy/), and current reports/diagrams are grouped under [`docs/`](docs/).
 
 ## Verification status and known limitations
 
@@ -386,7 +374,7 @@ There are also top-level legacy/alternate modules such as `main.py`, `app.js`, `
 - The current checkout does not contain `data/raw`, so training and full reproduction cannot start until the dataset is supplied.
 - The saved evaluation is retrospective, small, and outcome-proxy based.
 - The new streaming endpoint is a local in-memory simulation; no durable patient-state service, timestamped live ground truth, prospective shadow mode, or clinical validation is included.
-- The model-improvement benchmark in [`model_improvement_report.md`](model_improvement_report.md) is explicitly marked offline and is **not** copied into the saved production model artifacts.
+- The model-improvement benchmark in [`docs/reports/model_improvement_report.md`](docs/reports/model_improvement_report.md) is explicitly marked offline and is **not** copied into the saved production model artifacts.
 
 ## Research follow-ups
 
