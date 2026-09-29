@@ -165,8 +165,9 @@ function renderWardTable(patients) {
           ${(p.mean_credibility * 100).toFixed(0)}%
         </span>
       </td>
-      <td class="px-4 py-3 text-right">
-        <button onclick="selectPatient(${p.patient_id})" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-cyan-600 hover:text-white text-slate-700 rounded transition">
+      <td class="px-4 py-3 text-right flex items-center justify-end gap-2">
+        ${p.state === 'ALERT' ? `<button onclick="sendTelegramAlert(${p.patient_id})" class="px-2.5 py-1 text-xs font-semibold bg-red-100 hover:bg-red-600 hover:text-white text-red-700 rounded transition" title="Send Telegram Alert"><i data-lucide="send" class="w-3 h-3 inline"></i> Telegram</button>` : ''}
+        <button onclick="selectPatient(${p.patient_id})\" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-cyan-600 hover:text-white text-slate-700 rounded transition">
           Timeline & Sim →
         </button>
       </td>
@@ -818,5 +819,20 @@ async function sendChatMessage() {
         }
     } catch (err) {
         appendChatMessage('bot', 'Failed to communicate with AI server.');
+    }
+}
+
+// --- Telegram Alert Logic ---
+async function sendTelegramAlert(patientId) {
+    try {
+        const response = await fetch(`/api/telegram_alert?patient_id=${patientId}`, { method: 'POST' });
+        const data = await response.json();
+        if(data.success) {
+            alert(`Telegram Alert Sent for Patient ${patientId}!`);
+        } else {
+            alert(`Failed to send Telegram alert: ${data.message}`);
+        }
+    } catch (err) {
+        alert("Failed to reach server to send Telegram alert.");
     }
 }
