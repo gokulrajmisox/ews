@@ -30,6 +30,8 @@ def config():
 
 def test_patient_level_splitting(config):
     """Guarantees zero row/patient leakage between splits."""
+    if not os.path.exists(config["data"]["outcomes_file"]):
+        pytest.skip("PhysioNet raw data is not present in this checkout.")
     tr, val, te, _ = get_patient_splits(config)
     set_tr = set(tr)
     set_val = set(val)

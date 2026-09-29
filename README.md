@@ -172,10 +172,13 @@ The default launcher serves [`frontend/index.html`](frontend/index.html) and [`f
 - Patient timeline replay with scrubber, play/pause/reset, and 1×/2×/5× speed controls.
 - Synchronized vital, calibrated-risk, and evidence charts.
 - Performance and ablation views backed by saved JSON artifacts.
+- An alert-policy sweep for comparing sensitivity, precision, false-alert events, and alerts per patient-day across operating points.
 - A noise lab that runs the in-memory stress-test endpoint.
 - An optional legacy Gemini CSV/chat view and optional Telegram alert action in the default frontend/backend route.
 
 The timeline UI filters points to the selected replay time before rendering them. This is a visualization of the retrospective replay; it is not a live telemetry stream.
+
+The repository now also includes a **live-style incremental simulation API**. It accepts one chronological batch at a time, updates in-memory patient state, and returns trust-adjusted data quality, calibrated risk, evidence score, alert state, suppression status, and model metadata. It is intended for demos and shadow-mode experiments; it is not a durable multi-worker clinical stream processor.
 
 ## Demo video
 
@@ -191,16 +194,30 @@ The default FastAPI application is [`backend.main:app`](backend/main.py), with r
 
 | Method | Route | Purpose |
 |---|---|---|
+| `GET` | `/health` | Liveness check and runtime mode |
+| `GET` | `/version` | Application, config, and artifact metadata |
 | `GET` | `/api/overview` | Saved cohort metrics and current retrospective state counts |
 | `GET` | `/api/ward` | Latest saved state for each test patient |
 | `GET` | `/api/patient/{patient_id}/timeline` | Chronological replay records for one patient |
 | `GET` | `/api/patient/{patient_id}/explanation` | SHAP/trust explanation generated from the saved pipeline |
 | `GET` | `/api/performance` | Saved evaluation summary and curves |
+| `GET` | `/api/policy-sweep?thresholds=0.55,0.65,0.75` | Operating-point sweep over saved chronological replay |
 | `GET` | `/api/ablation` | Saved ablation table |
 | `GET` | `/api/noise-lab` | Cached or default noise-stress results |
 | `POST` | `/api/noise-lab/run` | Run an in-memory noise experiment with request parameters |
+| `POST` | `/api/v1/patients/{patient_id}/observations` | Score one chronological observation batch |
+| `GET` | `/api/v1/patients/{patient_id}/state` | Inspect in-memory streaming state |
+| `DELETE` | `/api/v1/patients/{patient_id}/state` | Reset one local demo patient state |
 | `POST` | `/api/chat` | Legacy Gemini chat/CSV analysis route; requires `GEMINI_API_KEY` |
 | `POST` | `/api/telegram_alert?patient_id=...` | Optional Telegram notification; requires bot credentials |
+
+Example incremental request:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/patients/138123/observations \
+  -H 'Content-Type: application/json' \
+  -d '{"timestamp_hours": 4, "observations": {"HR": 82, "SysABP": 118, "RespRate": 19}, "static_info": {"Age": 65, "ICUType": 2}}'
+```
 
 ### Experimental / not wired into the default app
 
@@ -223,7 +240,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-> **Current checkout caveat:** `requirements.txt` contains CRLF/NUL-encoded entries for the Gemini and multipart dependencies. If installation fails on those lines, normalize the file or install the intended packages explicitly before running the server: `google-genai`, `python-multipart`, plus the pinned packages listed above. This is a repository setup issue, not an application feature.
+The dependency file is now valid and includes the server, multipart upload, test, and runtime packages. The optional Gemini SDK is intentionally commented out; install `google-genai` only when enabling the legacy `/api/chat` route.
 
 ### 2. Add the raw dataset
 
@@ -257,7 +274,18 @@ Open:
 - Dashboard: <http://127.0.0.1:8000>
 - API docs: <http://127.0.0.1:8000/docs>
 
-If required model/evaluation artifacts are missing, the launcher attempts to train and evaluate them before starting the server.
+If required model/evaluation artifacts are missing, the launcher exits with an actionable message instead of mutating artifacts at boot. Run `python run.py --reproduce` first. The service exposes `GET /health` and `GET /version` for smoke checks.
+
+### Container launch
+
+The checked-in model and result artifacts are sufficient for the demo container:
+
+```bash
+docker build -t silentwindow .
+docker run --rm -p 8000:8000 silentwindow
+```
+
+The raw challenge dataset is intentionally excluded from the image. Use the local Python pipeline with the dataset mounted separately when retraining.
 
 ### Pipeline commands
 
@@ -300,12 +328,13 @@ Never commit real secrets. The optional Supabase table definition is in [`schema
 The code implements some defensive behavior, but it is **not production-hardened**:
 
 - **Input validation:** Pydantic validates noise-test and alternate AI request payloads; the legacy chat route accepts multipart text/file input.
+- **Streaming validation:** Incremental requests validate patient IDs, finite numeric values, non-empty observation batches, and the configured 48-hour horizon; out-of-order batches are rejected.
 - **Secrets:** Environment variables are used for optional external services; `.env` is ignored by Git.
 - **Database security:** `schema.sql` enables Supabase RLS and creates an anonymous insert policy for chat messages. This applies only if that optional schema is deployed.
 - **Authentication/authorization:** **Not implemented** for the default API.
-- **CORS:** The FastAPI app allows all origins, methods, headers, and credentials for local development.
+- **CORS:** The FastAPI app defaults to localhost origins and can be configured with `CORS_ORIGINS`.
 - **Rate limiting:** **Not implemented.**
-- **Live ingestion/state:** **Not implemented.** The default routes read cached local files and artifacts.
+- **Live ingestion/state:** Incremental simulation is implemented, but state is process-local and is lost on restart; it is not safe for multi-worker deployment.
 - **Encryption/audit controls:** No application-level encryption, user identity model, or production audit trail is implemented.
 
 Do not expose the default service directly to a public network without adding authentication, restrictive CORS, request limits, durable state, secret management, structured logging, and an appropriately reviewed deployment boundary.
@@ -330,12 +359,16 @@ Do not expose the default service directly to a public network without adding au
 │   ├── evaluation.py           # Offline metrics and curves
 │   ├── ablation.py              # Component ablation
 │   ├── noise_test.py            # Synthetic corruption experiments
-│   └── explainability.py       # SHAP and trust provenance
+│   ├── policy_sweep.py          # Alert operating-point analysis
+│   └── explainability.py        # SHAP and trust provenance
 ├── models/                     # Checked-in model/calibrator artifacts
 ├── results/                    # Checked-in saved evaluation artifacts
 ├── configs/config.yaml         # Pipeline and alert configuration
-├── tests/test_silentwindow.py # Core unit tests
+├── tests/                      # Core and API contract tests
 ├── run.py                      # CLI and server launcher
+├── Makefile                    # Install, test, check, run, reproduce commands
+├── .github/workflows/ci.yml    # Python 3.10–3.12 CI
+├── Dockerfile                  # Reproducible demo container
 ├── schema.sql                  # Optional Supabase chat table/RLS
 └── api/index.py                # Vercel adapter targeting backend.main
 ```
@@ -345,10 +378,10 @@ There are also top-level legacy/alternate modules such as `main.py`, `app.js`, `
 ## Verification status and known limitations
 
 - Python syntax compilation succeeds with `python -m compileall`.
-- The test suite is present, but it requires the declared dependencies and the ignored raw dataset; a fresh checkout without those prerequisites cannot run it.
+- The test suite is runnable after dependency installation; only the raw-data split test is skipped when the ignored dataset is absent.
 - The current checkout does not contain `data/raw`, so training and full reproduction cannot start until the dataset is supplied.
 - The saved evaluation is retrospective, small, and outcome-proxy based.
-- No live telemetry endpoint, durable patient-state service, timestamped live ground truth, prospective shadow mode, or clinical validation is included.
+- The new streaming endpoint is a local in-memory simulation; no durable patient-state service, timestamped live ground truth, prospective shadow mode, or clinical validation is included.
 - The model-improvement benchmark in [`model_improvement_report.md`](model_improvement_report.md) is explicitly marked offline and is **not** copied into the saved production model artifacts.
 
 ## Research follow-ups
@@ -356,7 +389,7 @@ There are also top-level legacy/alternate modules such as `main.py`, `app.js`, `
 The following are not implemented features; they are the work required before any operational evaluation:
 
 - Restore and version the input-data contract without committing restricted raw data.
-- Add a versioned, authenticated telemetry-ingestion API with units, timestamps, and schema validation.
+- Add authentication, units, and a durable event store around the versioned telemetry-simulation API.
 - Persist patient state between events and log model/version/feature timestamps for every prediction.
 - Define a timestamped evaluation target and validate on a locked temporal cohort.
 - Run prospective shadow-mode evaluation with calibration, alert burden, subgroup, latency, and safety review.

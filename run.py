@@ -83,13 +83,12 @@ def main():
         tester.run_stress_test(intensity=0.5, max_patients=30)
 
     if args.server:
-        # Check required artifacts exist
+        # Server startup must be deterministic; training belongs to an explicit
+        # pipeline command so a deployment never mutates model artifacts at boot.
         if not os.path.exists("models/xgboost_model.joblib") or not os.path.exists("results/evaluation_summary.json"):
-            print("Model artifacts or evaluation results missing. Training and evaluating first...")
-            from ml.train import train_and_calibrate
-            from ml.evaluation import run_evaluation
-            train_and_calibrate()
-            run_evaluation()
+            print("Required model/evaluation artifacts are missing.")
+            print("Run `python run.py --reproduce` before starting the server.")
+            sys.exit(2)
 
         url = f"http://{args.host}:{args.port}"
         print(f"\n=======================================================")

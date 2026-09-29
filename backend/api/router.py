@@ -6,19 +6,22 @@ import os
 import json
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import pandas as pd
 import numpy as np
 
 from ml.preprocessing import load_config
 from ml.explainability import ClinicalExplainer
 from ml.noise_test import NoiseStressTester
+from ml.policy_sweep import sweep_alert_thresholds
+from backend.streaming import StreamingInferenceError, StreamingInferenceService
 
 router = APIRouter(prefix="/api")
 
 # Lazy-loaded singletons
 _explainer = None
 _noise_tester = None
+_streaming_service = None
 
 def get_explainer():
     global _explainer
@@ -31,6 +34,12 @@ def get_noise_tester():
     if _noise_tester is None:
         _noise_tester = NoiseStressTester("configs/config.yaml")
     return _noise_tester
+
+def get_streaming_service():
+    global _streaming_service
+    if _streaming_service is None:
+        _streaming_service = StreamingInferenceService("configs/config.yaml")
+    return _streaming_service
 
 @router.get("/overview")
 def get_overview():
@@ -212,6 +221,21 @@ def get_performance_metrics():
         data = json.load(f)
     return data
 
+
+@router.get("/policy-sweep")
+def get_policy_sweep(thresholds: str = "0.55,0.65,0.75,0.85,0.95"):
+    """Replay saved records across alert thresholds without selecting a test threshold."""
+    try:
+        values = [float(value.strip()) for value in thresholds.split(",") if value.strip()]
+        if not values or len(values) > 20:
+            raise ValueError("Provide between 1 and 20 comma-separated thresholds.")
+        return {
+            "disclaimer": "Operating-point analysis only; select thresholds on validation data before test reporting.",
+            "results": sweep_alert_thresholds(thresholds=values),
+        }
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
 @router.get("/ablation")
 def get_ablation_results():
     """Returns results of the 4-component ablation study."""
@@ -224,11 +248,51 @@ def get_ablation_results():
     return data
 
 class NoiseStressRequest(BaseModel):
-    intensity: float = 0.5
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
     inject_missingness: bool = True
     inject_spikes: bool = True
     inject_jitter: bool = True
-    max_patients: int = 25
+    max_patients: int = Field(default=25, ge=1, le=35)
+
+
+class ObservationBatchRequest(BaseModel):
+    """One chronological batch for the local live-style inference simulator."""
+
+    timestamp_hours: float = Field(ge=0.0, le=48.0)
+    observations: Dict[str, float] = Field(min_length=1, max_length=50)
+    static_info: Optional[Dict[str, float]] = None
+
+
+@router.post("/v1/patients/{patient_id}/observations", tags=["streaming"])
+def score_observation_batch(patient_id: int, req: ObservationBatchRequest):
+    """Score one chronological observation batch using in-memory patient state."""
+    if patient_id <= 0:
+        raise HTTPException(status_code=422, detail="patient_id must be positive.")
+    try:
+        return get_streaming_service().update(
+            patient_id=patient_id,
+            time_hours=req.timestamp_hours,
+            observations=req.observations,
+            static_info=req.static_info,
+        )
+    except StreamingInferenceError as exc:
+        status = 503 if "artifacts are missing" in str(exc).lower() else 400
+        raise HTTPException(status_code=status, detail=str(exc)) from exc
+
+
+@router.get("/v1/patients/{patient_id}/state", tags=["streaming"])
+def get_streaming_state(patient_id: int):
+    """Return the current in-memory state summary for a simulated patient."""
+    state = get_streaming_service().state_summary(patient_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail=f"No streaming state for patient {patient_id}.")
+    return state
+
+
+@router.delete("/v1/patients/{patient_id}/state", tags=["streaming"])
+def reset_streaming_state(patient_id: int):
+    """Reset one local demo patient state; no persisted clinical data is deleted."""
+    return {"patient_id": patient_id, "reset": get_streaming_service().reset(patient_id)}
 
 @router.get("/noise-lab")
 def get_noise_results():
@@ -256,9 +320,6 @@ def run_noise_lab(req: NoiseStressRequest):
 
 
 from fastapi import UploadFile, File, Form
-from google import genai
-from google.genai import types
-from google.genai.errors import APIError
 
 @router.post("/chat")
 async def chat_with_ai(
@@ -266,6 +327,7 @@ async def chat_with_ai(
     file: Optional[UploadFile] = File(None)
 ):
     try:
+        from google import genai
         from dotenv import load_dotenv
         load_dotenv()
         api_key = os.environ.get("GEMINI_API_KEY")
@@ -278,7 +340,9 @@ async def chat_with_ai(
         prompt = ""
         if file:
             content = await file.read()
-            csv_text = content.decode('utf-8')
+            if len(content) > 2_000_000:
+                return {"reply": "Uploaded files must be smaller than 2 MB."}
+            csv_text = content.decode("utf-8", errors="replace")
             prompt += f"Here is the patient CSV data:\n{csv_text}\n\n"
             
         if message:
@@ -317,7 +381,7 @@ async def send_telegram_alert(patient_id: int):
     text = f"🚨 CRITICAL ALERT: Patient {patient_id} has entered the ALERT state! Immediate review recommended."
     
     try:
-        resp = requests.post(url, json={"chat_id": chat_id, "text": text})
+        resp = requests.post(url, json={"chat_id": chat_id, "text": text}, timeout=10)
         if resp.status_code == 200:
             return {"success": True, "message": "Alert sent via Telegram."}
         else:

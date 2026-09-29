@@ -37,4 +37,14 @@ class ModelCalibrator:
             return np.clip(self.calibrator.predict(raw_probs), 0.01, 0.99)
         else:
             logits = np.log(raw_probs / (1.0 - raw_probs)).reshape(-1, 1)
-            return self.calibrator.predict_proba(logits)[:, 1]
+            try:
+                return self.calibrator.predict_proba(logits)[:, 1]
+            except AttributeError:
+                # Older/newer scikit-learn versions have changed fitted
+                # LogisticRegression attributes. The binary Platt model only
+                # needs coef_ and intercept_, so evaluate it directly when a
+                # persisted artifact cannot call predict_proba.
+                coef = np.asarray(self.calibrator.coef_).reshape(-1)
+                intercept = float(np.asarray(self.calibrator.intercept_).reshape(-1)[0])
+                scores = logits.reshape(-1) * float(coef[0]) + intercept
+                return 1.0 / (1.0 + np.exp(-scores))
