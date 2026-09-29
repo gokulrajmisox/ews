@@ -397,6 +397,6 @@ The following are not implemented features; they are the work required before an
 
 ## License and dataset terms
 
-No license file is present in this checkout. Add a project license before redistributing the software.
+The SilentWindow source code in this repository is released under the [MIT License](LICENSE). See the [`LICENSE`](LICENSE) file for the complete terms.
 
-The PhysioNet / Computing in Cardiology Challenge 2012 data is not included here. Obtain it from its authoritative source and comply with the dataset’s own access, citation, and usage terms.
+The MIT License applies to the project code and documentation only. The PhysioNet / Computing in Cardiology Challenge 2012 data is not included here and is **not** relicensed by this repository. Obtain it from its authoritative source and comply with the dataset’s own access, citation, and usage terms.
