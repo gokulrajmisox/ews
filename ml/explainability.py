@@ -15,7 +15,10 @@ import numpy as np
 import pandas as pd
 from typing import Dict, List, Any, Optional
 
-import shap
+try:
+    import shap
+except ImportError:  # Optional in the lightweight Vercel runtime.
+    shap = None
 from ml.preprocessing import load_config, load_patient_raw
 from ml.trust_layer import TrustAwareSignalProcessor
 from ml.features import FeatureExtractor
@@ -52,8 +55,8 @@ class ClinicalExplainer:
         with open(features_path, "r") as f:
             self.feature_cols = json.load(f)
 
-        # Initialize TreeExplainer
-        self.explainer = shap.TreeExplainer(self.model)
+        # SHAP is optional in the serverless runtime; use model importances when absent.
+        self.explainer = shap.TreeExplainer(self.model) if shap is not None else None
         self.trust_proc = TrustAwareSignalProcessor(self.config)
         self.extractor = FeatureExtractor(self.config)
 
@@ -100,11 +103,17 @@ class ClinicalExplainer:
         calib_prob = float(self.calibrator.predict_calibrated(np.array([raw_prob]))[0])
 
         # 5. SHAP values
-        shap_values = self.explainer.shap_values(feat_df)
-        if isinstance(shap_values, list):
-            sv = shap_values[1][0] if len(shap_values) > 1 else shap_values[0][0]
+        if self.explainer is not None:
+            shap_values = self.explainer.shap_values(feat_df)
+            if isinstance(shap_values, list):
+                sv = shap_values[1][0] if len(shap_values) > 1 else shap_values[0][0]
+            else:
+                sv = shap_values[0]
         else:
-            sv = shap_values[0]
+            # Approximate directional contributions from the trained tree importances.
+            importances = getattr(self.model, "feature_importances_", np.zeros(len(self.feature_cols)))
+            values = feat_df.iloc[0].to_numpy(dtype=float)
+            sv = importances * values
 
         # Rank features by positive contribution towards deterioration
         ranked_indices = np.argsort(sv)[::-1]
