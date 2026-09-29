@@ -240,7 +240,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-The dependency file is now valid and includes the server, multipart upload, test, and runtime packages. The optional Gemini SDK is intentionally commented out; install `google-genai` only when enabling the legacy `/api/chat` route.
+The dependency file is now valid and includes the server, multipart upload, test, runtime, and Gemini SDK packages. The deployed Render service has Gemini enabled through Render environment variables; secrets are not committed to Git.
 
 ### 2. Add the raw dataset
 

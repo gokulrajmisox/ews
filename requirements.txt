@@ -15,6 +15,5 @@ python-dotenv==1.0.1
 python-multipart==0.0.20
 pytest==8.3.4
 httpx==0.28.1
-# Optional AI dashboard integration
-# Install only when /api/chat is enabled:
-# google-genai>=1.0,<2
+# Optional AI dashboard integration enabled on the deployed Render service
+google-genai==2.25.0
