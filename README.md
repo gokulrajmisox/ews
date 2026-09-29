@@ -9,6 +9,10 @@
 
 SilentWindow is a research demonstrator for reducing alarm fatigue in ICU telemetry. It evaluates a three-layer pipeline that **assesses signal credibility, builds patient-specific temporal features, and accumulates evidence before changing alert state**.
 
+
+https://github.com/user-attachments/assets/ce0575d7-16ac-4db2-9192-be21f55cec5c
+
+
 The repository contains a FastAPI service, a static dashboard, the offline ML/evaluation pipeline, trained artifacts, and saved retrospective evaluation results.
 
 ## Scope and safety
