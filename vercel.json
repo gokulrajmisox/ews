@@ -1,8 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "api/index.py", "use": "@vercel/python" }
-  ],
   "functions": {
     "api/index.py": {
       "excludeFiles": "{dataset/**,data/**,tests/**,**/__pycache__/**,**/*.pyc,*.zip,*.csv,*.parquet,*.png,*.mmd,*.md,ablation_results.json,evaluation_summary.json,noise_stress_results.json}"
