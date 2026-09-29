@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: silentwindow
+    runtime: docker
+    repo: https://github.com/gokulrajmisox/ews
+    branch: main
+    autoDeploy: true
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8000
+      - key: CORS_ORIGINS
+        value: https://silentwindow.onrender.com
