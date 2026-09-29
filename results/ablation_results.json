@@ -1,0 +1,49 @@
+{
+  "disclaimer": "Research prototype \u2014 retrospective data only. Not for clinical decision-making. Lead time estimated relative to outcome/proxy.",
+  "results_table": [
+    {
+      "variant_id": "full_silentwindow",
+      "system_name": "Full SilentWindow",
+      "description": "Trust Layer + Personal Baseline + Trajectory + Evidence Accumulator",
+      "sensitivity": 0.1364,
+      "false_alarms": 51,
+      "alerts_per_patient_day": 0.203,
+      "median_lead_time": 37.0,
+      "precision": 0.15,
+      "total_alerts": 60
+    },
+    {
+      "variant_id": "no_trust",
+      "system_name": "Without Trust Layer",
+      "description": "Personal Baseline + Trajectory + Evidence Accumulator (No Credibility Weighting)",
+      "sensitivity": 0.1364,
+      "false_alarms": 51,
+      "alerts_per_patient_day": 0.203,
+      "median_lead_time": 37.0,
+      "precision": 0.15,
+      "total_alerts": 60
+    },
+    {
+      "variant_id": "no_personal_baseline",
+      "system_name": "Without Personal Baseline",
+      "description": "Trust Layer + Trajectory + Evidence Accumulator (No Patient-Specific Delta)",
+      "sensitivity": 0.1364,
+      "false_alarms": 11,
+      "alerts_per_patient_day": 0.154,
+      "median_lead_time": 37.0,
+      "precision": 0.75,
+      "total_alerts": 46
+    },
+    {
+      "variant_id": "no_accumulator",
+      "system_name": "Without Evidence Accumulator",
+      "description": "Trust Layer + Personal Baseline + Trajectory + Direct Instantaneous Threshold",
+      "sensitivity": 0.0455,
+      "false_alarms": 24,
+      "alerts_per_patient_day": 0.203,
+      "median_lead_time": 41.0,
+      "precision": 0.3333,
+      "total_alerts": 60
+    }
+  ]
+}

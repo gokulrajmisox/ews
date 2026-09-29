@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SilentWindow — Trust-Aware Early Warning System</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Atkinson Hyperlegible -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ECFEFF',
+              100: '#CFFAFE',
+              500: '#0891B2',
+              600: '#0E7490',
+              700: '#155E75',
+              900: '#0F172A',
+            },
+            status: {
+              stable: '#10B981',
+              watch: '#F59E0B',
+              alert: '#EF4444',
+              neutral: '#64748B',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Atkinson Hyperlegible', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border: 1px solid #E2E8F0; }
+    .tab-btn.active { border-bottom: 2px solid #0891B2; color: #0891B2; font-weight: 600; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #CBD5E1; border-radius: 4px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+
+  <!-- TOP CLINICAL DISCLAIMER BANNER -->
+  <header class="bg-amber-500 text-amber-950 px-4 py-2 text-xs font-medium flex items-center justify-between shadow-sm border-b border-amber-600">
+    <div class="flex items-center gap-2 max-w-6xl mx-auto w-full">
+      <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0 text-amber-900"></i>
+      <span><strong>RESEARCH PROTOTYPE ONLY:</strong> Retrospective ICU dataset evaluation. Not for clinical diagnosis, treatment recommendations, or real-world medical decision-making. Lead times are estimated relative to outcome/stay proxy.</span>
+    </div>
+  </header>
+
+  <!-- NAVIGATION HEADER -->
+  <nav class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Title -->
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-cyan-600 flex items-center justify-center text-white shadow-inner">
+            <i data-lucide="activity" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl font-bold tracking-tight text-white">Silent<span class="text-cyan-400">Window</span></span>
+              <span class="px-2 py-0.5 text-[10px] font-semibold bg-cyan-950 text-cyan-300 border border-cyan-700 rounded-full">Trust-Aware CDS</span>
+            </div>
+            <p class="text-xs text-slate-400 italic">"An early-warning system that knows when NOT to speak."</p>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="hidden md:flex space-x-1" id="nav-tabs">
+          <button onclick="switchTab('overview')" class="tab-btn active px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="overview">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Overview
+          </button>
+          <button onclick="switchTab('ward')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="ward">
+            <i data-lucide="users" class="w-4 h-4"></i> Ward Monitor
+          </button>
+          <button onclick="switchTab('timeline')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="timeline">
+            <i data-lucide="line-chart" class="w-4 h-4"></i> Patient Timeline & Sim
+          </button>
+          <button onclick="switchTab('explanation')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="explanation">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Alert Explanation (SHAP)
+          </button>
+          <button onclick="switchTab('performance')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="performance">
+            <i data-lucide="target" class="w-4 h-4"></i> Performance
+          </button>
+          <button onclick="switchTab('ablation')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="ablation">
+            <i data-lucide="layers" class="w-4 h-4"></i> Ablation Study
+          </button>
+          <button onclick="switchTab('noiselab')" class="tab-btn px-3 py-2 text-sm rounded-md hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5" data-tab="noiselab">
+            <i data-lucide="sliders" class="w-4 h-4"></i> Noise Lab
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN VIEWPORT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- ========================================== -->
+    <!-- PAGE 1: OVERVIEW                           -->
+    <!-- ========================================== -->
+    <section id="view-overview" class="space-y-6">
+      <!-- Welcome Banner -->
+      <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-950 rounded-2xl p-6 text-white shadow-lg border border-slate-700">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 mb-3">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Leakage-Free Chronological ICU Analytics
+          </div>
+          <h1 class="text-3xl font-extrabold tracking-tight mb-2">Welcome to SilentWindow</h1>
+          <p class="text-slate-300 text-sm leading-relaxed mb-4">
+            Traditional early-warning scores and naive ML produce severe alarm fatigue by alerting on transient spikes and noisy artifacts.
+            <strong>SilentWindow</strong> implements a 3-layer architecture: <strong>Trust-Aware Signal Processing</strong> downweights sensor noise, <strong>Personal Baseline</strong> captures patient-specific physiological changes, and a <strong>Sequential Evidence Accumulator</strong> ensures high-confidence alerts are only triggered when deterioration is reliable and persistent.
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <button onclick="switchTab('ward')" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-sm rounded-lg shadow transition flex items-center gap-2">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i> Open Ward Monitor
+            </button>
+            <button onclick="switchTab('timeline')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-sm rounded-lg border border-slate-600 transition flex items-center gap-2">
+              <i data-lucide="play" class="w-4 h-4"></i> Interactive Patient Simulation
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Core KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1 -->
+        <div class="glass-card rounded-xl p-5 shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between text-slate-500 text-xs font-medium uppercase mb-2">
+            <span>Test Cohort Patients</span>
+            <i data-lucide="users" class="w-4 h-4 text-cyan-600"></i>
+          </div>
+          <div class="text-2xl font-bold text-slate-900" id="kpi-total-patients">152</div>
+          <p class="text-xs text-slate-500 mt-1">6,943 hours of ICU telemetry</p>
+        </div>
+        <!-- Card 2 -->
+        <div class="glass-card rounded-xl p-5 shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between text-slate-500 text-xs font-medium uppercase mb-2">
+            <span>Current Bed Status</span>
+            <i data-lucide="activity" class="w-4 h-4 text-emerald-600"></i>
+          </div>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800" id="kpi-stable-count">139 Stable</span>
+            <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800" id="kpi-watch-count">10 Watch</span>
+            <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-800" id="kpi-alert-count">3 Alert</span>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">Active retrospective state</p>
+        </div>
+        <!-- Card 3 -->
+        <div class="glass-card rounded-xl p-5 shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between text-slate-500 text-xs font-medium uppercase mb-2">
+            <span>SilentWindow Alert Burden</span>
+            <i data-lucide="bell-off" class="w-4 h-4 text-amber-600"></i>
+          </div>
+          <div class="text-2xl font-bold text-slate-900" id="kpi-alerts-pt-day">0.203 <span class="text-xs font-normal text-slate-500">alerts/pt-day</span></div>
+          <p class="text-xs text-emerald-600 font-medium mt-1">59.7% lower alarm rate vs threshold</p>
+        </div>
+        <!-- Card 4 -->
+        <div class="glass-card rounded-xl p-5 shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between text-slate-500 text-xs font-medium uppercase mb-2">
+            <span>Median Lead Time</span>
+            <i data-lucide="clock" class="w-4 h-4 text-blue-600"></i>
+          </div>
+          <div class="text-2xl font-bold text-slate-900" id="kpi-median-lead-time">37.0 <span class="text-xs font-normal text-slate-500">hours</span></div>
+          <p class="text-xs text-slate-500 mt-1">Relative to ICU outcome proxy</p>
+        </div>
+      </div>
+
+      <!-- Comparative Summary Cards (SilentWindow vs Baselines) -->
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
+          <i data-lucide="git-compare" class="w-5 h-5 text-cyan-600"></i> Baseline Comparison Overview
+        </h2>
+        <p class="text-xs text-slate-500 mb-4">Direct evaluation on identical 152 test patients (zero data leakage, past-only chronological replay).</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- SilentWindow -->
+          <div class="p-4 rounded-xl border-2 border-cyan-500 bg-cyan-50/40 relative">
+            <span class="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-600 text-white">PROPOSED</span>
+            <h3 class="font-bold text-slate-900 text-base">Full SilentWindow</h3>
+            <p class="text-xs text-slate-500 mb-3">Trust Layer + Personal Baseline + Accumulator</p>
+            <div class="space-y-1.5 text-xs text-slate-700">
+              <div class="flex justify-between"><span>Sensitivity (Recall):</span> <strong>13.6%</strong></div>
+              <div class="flex justify-between"><span>False Alerts (Cohort):</span> <strong class="text-slate-900">51</strong></div>
+              <div class="flex justify-between"><span>Alerts / Patient-Day:</span> <strong>0.203</strong></div>
+              <div class="flex justify-between"><span>Median Lead Time:</span> <strong>37.0 hours</strong></div>
+            </div>
+          </div>
+          <!-- Plain ML -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-white">
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 float-right">BASELINE B</span>
+            <h3 class="font-bold text-slate-900 text-base">Plain ML Baseline</h3>
+            <p class="text-xs text-slate-500 mb-3">XGBoost instant risk threshold (≥ 0.50)</p>
+            <div class="space-y-1.5 text-xs text-slate-700">
+              <div class="flex justify-between"><span>Sensitivity (Recall):</span> <strong>4.5%</strong></div>
+              <div class="flex justify-between"><span>False Alerts (Cohort):</span> <strong>24</strong></div>
+              <div class="flex justify-between"><span>Alerts / Patient-Day:</span> <strong>0.203</strong></div>
+              <div class="flex justify-between"><span>Median Lead Time:</span> <strong>41.0 hours</strong></div>
+            </div>
+          </div>
+          <!-- Threshold -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-white">
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 float-right">BASELINE A</span>
+            <h3 class="font-bold text-slate-900 text-base">Simplified Threshold</h3>
+            <p class="text-xs text-slate-500 mb-3">Fixed abnormal vital sign boundaries</p>
+            <div class="space-y-1.5 text-xs text-slate-700">
+              <div class="flex justify-between"><span>Sensitivity (Recall):</span> <strong>40.9%</strong></div>
+              <div class="flex justify-between"><span>False Alerts (Cohort):</span> <strong class="text-red-600">120 (Alarm Spam!)</strong></div>
+              <div class="flex justify-between"><span>Alerts / Patient-Day:</span> <strong class="text-red-600">0.504</strong></div>
+              <div class="flex justify-between"><span>Median Lead Time:</span> <strong>42.0 hours</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Architectural Pipeline Diagram -->
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+          <i data-lucide="layers" class="w-5 h-5 text-cyan-600"></i> SilentWindow Architectural Pipeline
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-center text-xs">
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+            <div class="font-bold text-slate-800">Raw ICU Telemetry</div>
+            <div class="text-slate-500 text-[11px] mt-1">Irregular, noisy, missing vitals</div>
+          </div>
+          <div class="p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
+            <div class="font-bold text-cyan-900">Layer 1: Trust Processing</div>
+            <div class="text-cyan-700 text-[11px] mt-1">Plausibility, jump detection, discordance</div>
+          </div>
+          <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="font-bold text-blue-900">Layer 2: Personal Baseline</div>
+            <div class="text-blue-700 text-[11px] mt-1">First 6h baseline, rolling slopes & dev</div>
+          </div>
+          <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+            <div class="font-bold text-indigo-900">XGBoost + Platt Calibrator</div>
+            <div class="text-indigo-700 text-[11px] mt-1">Empirical calibrated risk probability</div>
+          </div>
+          <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <div class="font-bold text-emerald-900">Layer 3: Evidence Accumulator</div>
+            <div class="text-emerald-700 text-[11px] mt-1">Sequential CUSUM, 🟡 Watch & 🔴 Alert</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAGE 2: WARD MONITOR                       -->
+    <!-- ========================================== -->
+    <section id="view-ward" class="space-y-4 hidden">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">ICU Ward Monitor</h1>
+          <p class="text-xs text-slate-500">Live surveillance across 152 test beds. Click any patient to inspect timeline and simulation.</p>
+        </div>
+        <!-- Search & Filter Controls -->
+        <div class="flex items-center gap-2">
+          <input type="text" id="ward-search" placeholder="Search Patient ID..." oninput="filterWardTable()"
+            class="px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white" />
+          <div class="inline-flex rounded-lg border border-slate-300 bg-white p-0.5 text-xs font-medium">
+            <button onclick="setWardFilter('ALL')" class="ward-filter-btn px-2.5 py-1 rounded bg-slate-900 text-white" data-filter="ALL">All</button>
+            <button onclick="setWardFilter('ALERT')" class="ward-filter-btn px-2.5 py-1 rounded text-slate-700 hover:bg-slate-100" data-filter="ALERT">🔴 Alert</button>
+            <button onclick="setWardFilter('WATCH')" class="ward-filter-btn px-2.5 py-1 rounded text-slate-700 hover:bg-slate-100" data-filter="WATCH">🟡 Watch</button>
+            <button onclick="setWardFilter('STABLE')" class="ward-filter-btn px-2.5 py-1 rounded text-slate-700 hover:bg-slate-100" data-filter="STABLE">🟢 Stable</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ward Table -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto max-h-[650px] custom-scrollbar">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 sticky top-0 z-10">
+              <tr>
+                <th class="px-4 py-3">Patient ID</th>
+                <th class="px-4 py-3">Current State</th>
+                <th class="px-4 py-3">Calibrated Risk</th>
+                <th class="px-4 py-3">Evidence Score</th>
+                <th class="px-4 py-3">Trend</th>
+                <th class="px-4 py-3">Last Telemetry</th>
+                <th class="px-4 py-3">Alerts Fired</th>
+                <th class="px-4 py-3">Stream Trust</th>
+                <th class="px-4 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="ward-table-body" class="divide-y divide-slate-100">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAGE 3: PATIENT TIMELINE & SIMULATION MODE -->
+    <!-- ========================================== -->
+    <section id="view-timeline" class="space-y-6 hidden">
+      <!-- Top Control Bar -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <!-- Patient Selector & Info -->
+        <div class="flex items-center gap-3">
+          <label for="patient-selector" class="text-xs font-bold text-slate-700">Patient:</label>
+          <select id="patient-selector" onchange="onPatientChange(this.value)" class="text-sm font-semibold rounded-lg border border-slate-300 px-3 py-1.5 bg-slate-50 focus:ring-2 focus:ring-cyan-500">
+            <!-- Populated by JS -->
+          </select>
+          <div id="patient-badges" class="flex items-center gap-2 text-xs">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Simulation Player Deck -->
+        <div class="flex items-center gap-3 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-inner">
+          <span class="text-xs font-semibold text-cyan-300 uppercase tracking-wider flex items-center gap-1">
+            <i data-lucide="play-circle" class="w-4 h-4"></i> Simulation
+          </span>
+          <div class="flex items-center gap-1">
+            <button id="sim-play-btn" onclick="togglePlaySimulation()" class="p-1.5 bg-cyan-600 hover:bg-cyan-500 rounded text-white transition">
+              <i data-lucide="play" class="w-4 h-4" id="sim-play-icon"></i>
+            </button>
+            <button onclick="resetSimulation()" class="p-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <!-- Speed control -->
+          <div class="flex items-center gap-1 text-[11px]">
+            <span class="text-slate-400">Speed:</span>
+            <button onclick="setSimSpeed(1)" class="sim-speed-btn px-1.5 py-0.5 rounded bg-cyan-600 text-white font-bold" data-speed="1">1x</button>
+            <button onclick="setSimSpeed(2)" class="sim-speed-btn px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-speed="2">2x</button>
+            <button onclick="setSimSpeed(5)" class="sim-speed-btn px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-speed="5">5x</button>
+          </div>
+          <!-- Revealed time indicator -->
+          <div class="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded text-xs font-mono text-cyan-400" id="sim-time-display">
+            Data available up to: 48.0h
+          </div>
+        </div>
+      </div>
+
+      <!-- Time Scrubber Slider -->
+      <div class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex items-center gap-4">
+        <span class="text-xs font-semibold text-slate-500">Timeline Scrubber:</span>
+        <input type="range" id="sim-scrubber" min="2" max="48" step="1" value="48" oninput="onScrubberInput(this.value)"
+          class="flex-1 accent-cyan-600 cursor-pointer" />
+        <span class="text-xs font-mono text-slate-700" id="scrubber-hour-label">48.0h / 48.0h</span>
+      </div>
+
+      <!-- Synchronized Multi-Track Charts -->
+      <div class="space-y-4">
+        <!-- Track 1: Vital Signs Telemetry & Artifact Downweighting -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="pulse" class="w-4 h-4 text-cyan-600"></i> Track 1: Vital Signs Telemetry (Chronological Stream)
+            </h3>
+            <span class="text-xs text-slate-500">🟣 Markers indicate readings downweighted by Layer 1 Trust Assessment</span>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="chart-vitals"></canvas>
+          </div>
+        </div>
+
+        <!-- Track 2: Model Risk Probability (Past-only prediction) -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="trending-up" class="w-4 h-4 text-indigo-600"></i> Track 2: Calibrated Deterioration Risk Probability
+            </h3>
+            <span class="text-xs text-slate-500">Dotted line = Neutral Baseline (0.22)</span>
+          </div>
+          <div class="h-44 relative">
+            <canvas id="chart-risk"></canvas>
+          </div>
+        </div>
+
+        <!-- Track 3: Sequential Evidence Accumulator & Alert States -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-emerald-600"></i> Track 3: Layer 3 Sequential Evidence Accumulator & Alert Triggers
+            </h3>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="text-amber-600 font-semibold">🟡 Watch (≥0.40)</span>
+              <span class="text-red-600 font-semibold">🔴 Alert (≥0.75)</span>
+              <span class="text-slate-500">| Gray markers = Baseline Comparisons</span>
+            </div>
+          </div>
+          <div class="h-52 relative">
+            <canvas id="chart-evidence"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAGE 4: ALERT EXPLANATION (SHAP & TRUST)   -->
+    <!-- ========================================== -->
+    <section id="view-explanation" class="space-y-6 hidden">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h1 class="text-2xl font-bold text-slate-900">Clinical Alert Explanation & Trust Audit</h1>
+            <p class="text-xs text-slate-500">Full SHAP feature contribution analysis and telemetry credibility provenance.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-600 font-medium">Inspecting:</span>
+            <span id="explanation-patient-badge" class="px-3 py-1 bg-slate-900 text-white font-mono text-xs rounded-lg">Patient 132539</span>
+          </div>
+        </div>
+
+        <!-- Alert Status Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-xs font-semibold text-slate-500 uppercase">Calibrated Risk</div>
+            <div class="text-2xl font-bold text-slate-900 mt-1" id="exp-risk-val">--%</div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-xs font-semibold text-slate-500 uppercase">Evidence Score</div>
+            <div class="text-2xl font-bold text-slate-900 mt-1" id="exp-evidence-val">--</div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-xs font-semibold text-slate-500 uppercase">Evaluation Hour</div>
+            <div class="text-2xl font-bold text-slate-900 mt-1" id="exp-hour-val">--h</div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-xs font-semibold text-slate-500 uppercase">Estimated Lead Time</div>
+            <div class="text-2xl font-bold text-cyan-600 mt-1" id="exp-lead-val">--h</div>
+            <div class="text-[10px] text-slate-400">Relative to outcome proxy</div>
+          </div>
+        </div>
+
+        <!-- Clinical Rationale Bullets -->
+        <div class="bg-cyan-50/50 border border-cyan-200 rounded-xl p-4 mb-6">
+          <h3 class="text-xs font-bold text-cyan-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <i data-lucide="check-circle" class="w-4 h-4 text-cyan-600"></i> Synthesized Clinical Decision Rationale
+          </h3>
+          <div id="explanation-bullets" class="space-y-1 text-xs text-cyan-950 font-medium">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- SHAP Top Contributing Factors -->
+          <div class="space-y-3">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="bar-chart-2" class="w-4 h-4 text-cyan-600"></i> Top SHAP Feature Contributions to Risk
+            </h3>
+            <p class="text-xs text-slate-500">Computed via TreeExplainer on past-only feature representations.</p>
+            <div id="shap-factors-container" class="space-y-2.5">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Layer 1: Downweighted / Suspicious Readings Audit -->
+          <div class="space-y-3">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-amber-600"></i> Layer 1 Trust Audit: Downweighted Telemetry
+            </h3>
+            <p class="text-xs text-slate-500">Readings downweighted by conservative plausibility, jumps, or discordance checks.</p>
+            <div class="border border-slate-200 rounded-xl overflow-hidden max-h-80 overflow-y-auto custom-scrollbar">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold sticky top-0">
+                  <tr>
+                    <th class="px-3 py-2">Time</th>
+                    <th class="px-3 py-2">Parameter</th>
+                    <th class="px-3 py-2">Value</th>
+                    <th class="px-3 py-2">Credibility</th>
+                    <th class="px-3 py-2">Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="suspicious-readings-body" class="divide-y divide-slate-100">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAGE 5: MODEL PERFORMANCE                  -->
+    <!-- ========================================== -->
+    <section id="view-performance" class="space-y-6 hidden">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <h1 class="text-2xl font-bold text-slate-900 mb-1">Model Discrimination & Evaluation Metrics</h1>
+        <p class="text-xs text-slate-500 mb-6">Patient-level evaluation across 152 test ICU patients without lookahead data leakage.</p>
+
+        <!-- Confusion Matrices Comparison -->
+        <h2 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+          <i data-lucide="grid" class="w-4 h-4 text-cyan-600"></i> Confusion Matrix Comparison (Patient-Level)
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <!-- SilentWindow Confusion Matrix -->
+          <div class="p-4 rounded-xl border border-cyan-400 bg-cyan-50/20">
+            <h4 class="font-bold text-xs text-cyan-900 mb-2">Full SilentWindow</h4>
+            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+              <div class="p-2 bg-emerald-100 rounded text-emerald-900"><strong>TP: 3</strong><br><span class="text-[10px]">Detected Deterioration</span></div>
+              <div class="p-2 bg-slate-100 rounded text-slate-700"><strong>FP: 29</strong><br><span class="text-[10px]">False Positive Pts</span></div>
+              <div class="p-2 bg-slate-100 rounded text-slate-700"><strong>FN: 19</strong><br><span class="text-[10px]">Undetected Cases</span></div>
+              <div class="p-2 bg-emerald-100 rounded text-emerald-900"><strong>TN: 101</strong><br><span class="text-[10px]">True Non-Deterioration</span></div>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-600 flex justify-between">
+              <span>Total Alerts Fired: <strong>54</strong></span>
+              <span>Alerts/pt-day: <strong>0.203</strong></span>
+            </div>
+          </div>
+
+          <!-- Plain ML Confusion Matrix -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-white">
+            <h4 class="font-bold text-xs text-slate-800 mb-2">Plain ML Baseline</h4>
+            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+              <div class="p-2 bg-emerald-50 rounded text-emerald-900"><strong>TP: 1</strong><br><span class="text-[10px]">Detected Deterioration</span></div>
+              <div class="p-2 bg-slate-100 rounded text-slate-700"><strong>FP: 15</strong><br><span class="text-[10px]">False Positive Pts</span></div>
+              <div class="p-2 bg-slate-100 rounded text-slate-700"><strong>FN: 21</strong><br><span class="text-[10px]">Undetected Cases</span></div>
+              <div class="p-2 bg-emerald-50 rounded text-emerald-900"><strong>TN: 115</strong><br><span class="text-[10px]">True Non-Deterioration</span></div>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-600 flex justify-between">
+              <span>Total Alerts Fired: <strong>25</strong></span>
+              <span>Alerts/pt-day: <strong>0.203</strong></span>
+            </div>
+          </div>
+
+          <!-- Threshold Baseline Confusion Matrix -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-white">
+            <h4 class="font-bold text-xs text-slate-800 mb-2">Simplified Threshold</h4>
+            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+              <div class="p-2 bg-emerald-50 rounded text-emerald-900"><strong>TP: 9</strong><br><span class="text-[10px]">Detected Deterioration</span></div>
+              <div class="p-2 bg-red-100 rounded text-red-900"><strong>FP: 61</strong><br><span class="text-[10px]">Severe False Positives</span></div>
+              <div class="p-2 bg-slate-100 rounded text-slate-700"><strong>FN: 13</strong><br><span class="text-[10px]">Undetected Cases</span></div>
+              <div class="p-2 bg-emerald-50 rounded text-emerald-900"><strong>TN: 69</strong><br><span class="text-[10px]">True Non-Deterioration</span></div>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-600 flex justify-between">
+              <span>Total Alerts Fired: <strong class="text-red-600">144</strong></span>
+              <span>Alerts/pt-day: <strong class="text-red-600">0.504</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PR Curve & ROC Curve -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+            <h3 class="text-xs font-bold text-slate-700 uppercase mb-2">ROC Curve (Cohort Discrimination: AUC 0.6990)</h3>
+            <div class="h-64 relative">
+              <canvas id="chart-roc"></canvas>
+            </div>
+          </div>
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+            <h3 class="text-xs font-bold text-slate-700 uppercase mb-2">Precision-Recall Curve (PR-AUC 0.2803)</h3>
+            <div class="h-64 relative">
+              <canvas id="chart-pr"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lead Time vs Alert Burden Trade-off -->
+        <div class="p-4 rounded-xl border border-slate-200 bg-white">
+          <h3 class="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+            <i data-lucide="scale" class="w-4 h-4 text-cyan-600"></i> Lead-Time vs Alert Burden Trade-Off Analysis
+          </h3>
+          <p class="text-xs text-slate-500 mb-4">Demonstrates the tradeoff between early warning lead time and clinician alert fatigue.</p>
+          <div class="h-64 relative">
+            <canvas id="chart-tradeoff"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAGE 6: ABLATION STUDY                     -->
+    <!-- ========================================== -->
+    <section id="view-ablation" class="space-y-6 hidden">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <h1 class="text-2xl font-bold text-slate-900 mb-1">Architectural Ablation Study</h1>
+        <p class="text-xs text-slate-500 mb-6">Empirical evaluation of each architectural layer by systematic removal on identical test patients.</p>
+
+        <!-- Ablation Table -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden mb-6">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 font-semibold text-slate-700">
+              <tr>
+                <th class="px-4 py-3">System Architecture</th>
+                <th class="px-4 py-3">Sensitivity</th>
+                <th class="px-4 py-3">False Alarms</th>
+                <th class="px-4 py-3">Alerts / Patient-Day</th>
+                <th class="px-4 py-3">Median Lead Time</th>
+                <th class="px-4 py-3">Total Alerts</th>
+              </tr>
+            </thead>
+            <tbody id="ablation-table-body" class="divide-y divide-slate-100">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Component Insights -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-xs text-slate-900 mb-1">Impact of Trust Layer</h4>
+            <p class="text-xs text-slate-600">Prevents sensor artifacts (extreme jumps and loose-lead disconnects) from prematurely inflating deterioration risk or corrupting personal baselines.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-xs text-slate-900 mb-1">Impact of Personal Baseline</h4>
+            <p class="text-xs text-slate-600">Normalizes each patient to their admission physiological state, allowing detection of relative deterioration in patients who deviate from their own normal.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-xs text-slate-900 mb-1">Impact of Evidence Accumulator</h4>
+            <p class="text-xs text-slate-600">The primary filter against alert fatigue. Demands sequential persistence across multiple time steps before escalating to a high-confidence alert, avoiding single-spike false alarms.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAGE 7: NOISE LAB                          -->
+    <!-- ========================================== -->
+    <section id="view-noiselab" class="space-y-6 hidden">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <h1 class="text-2xl font-bold text-slate-900 mb-1 flex items-center gap-2">
+          <i data-lucide="sliders" class="w-6 h-6 text-cyan-600"></i> Noise Stress Lab & Resilience Testing
+        </h1>
+        <p class="text-xs text-slate-500 mb-6">Simulates real-world ICU sensor noise (missingness, motion spikes, timing jitter) on in-memory test streams without modifying disk data.</p>
+
+        <!-- Noise Controls Deck -->
+        <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 mb-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <!-- Noise intensity slider -->
+            <div class="flex-1 space-y-1">
+              <div class="flex justify-between text-xs font-semibold text-slate-700">
+                <span>Sensor Corruption Intensity:</span>
+                <span id="noise-intensity-label" class="text-cyan-600 font-bold">50%</span>
+              </div>
+              <input type="range" id="noise-intensity-slider" min="10" max="100" step="5" value="50" oninput="updateNoiseSlider(this.value)"
+                class="w-full accent-cyan-600 cursor-pointer" />
+            </div>
+            <!-- Checkbox toggles -->
+            <div class="flex items-center gap-4 text-xs font-medium text-slate-700">
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" id="noise-toggle-missing" checked class="rounded text-cyan-600 focus:ring-cyan-500" />
+                <span>Random Dropouts</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" id="noise-toggle-spikes" checked class="rounded text-cyan-600 focus:ring-cyan-500" />
+                <span>Transient Spikes</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" id="noise-toggle-jitter" checked class="rounded text-cyan-600 focus:ring-cyan-500" />
+                <span>Timing Jitter</span>
+              </label>
+            </div>
+            <!-- Action buttons -->
+            <button onclick="triggerNoiseStressTest()" id="noise-run-btn"
+              class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs rounded-lg shadow transition flex items-center gap-2">
+              <i data-lucide="zap" class="w-4 h-4"></i> Run Stress Test
+            </button>
+          </div>
+        </div>
+
+        <!-- Comparative Resilience Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="noise-resilience-cards">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Comparison Chart -->
+        <div class="p-4 rounded-xl border border-slate-200 bg-white">
+          <h3 class="text-sm font-bold text-slate-900 mb-2">False Alarm Rate Under Noise (Clean vs Corrupted Telemetry)</h3>
+          <div class="h-64 relative">
+            <canvas id="chart-noise-comparison"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+    <p>SilentWindow Early Warning CDS Prototype • Retrospective ICU Analytics • PhysioNet Challenge 2012</p>
+  </footer>
+
+  <!-- SCRIPT LOGIC -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

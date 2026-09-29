@@ -1,0 +1,94 @@
+{
+  "model_type": "xgboost",
+  "calibration_method": "sigmoid",
+  "n_features": 127,
+  "validation_metrics": {
+    "roc_auc": 0.699,
+    "pr_auc": 0.2803,
+    "brier_score_raw": 0.1275,
+    "brier_score_calibrated": 0.108,
+    "log_loss": 0.3638
+  },
+  "top_features": [
+    {
+      "feature": "GCS_last_value",
+      "importance": 0.08206628262996674
+    },
+    {
+      "feature": "icu_type",
+      "importance": 0.08150821924209595
+    },
+    {
+      "feature": "RespRate_baseline_mean",
+      "importance": 0.05204448848962784
+    },
+    {
+      "feature": "GCS_rolling_mean_3h",
+      "importance": 0.0429733507335186
+    },
+    {
+      "feature": "GCS_pct_dev_from_baseline",
+      "importance": 0.03490189462900162
+    },
+    {
+      "feature": "Temp_rolling_mean_3h",
+      "importance": 0.0296050775796175
+    },
+    {
+      "feature": "weight",
+      "importance": 0.027205297723412514
+    },
+    {
+      "feature": "MAP_baseline_mean",
+      "importance": 0.026461949571967125
+    },
+    {
+      "feature": "age",
+      "importance": 0.025856489315629005
+    },
+    {
+      "feature": "DiasABP_baseline_mean",
+      "importance": 0.024905772879719734
+    },
+    {
+      "feature": "HR_baseline_mean",
+      "importance": 0.024158840999007225
+    },
+    {
+      "feature": "Urine_baseline_mean",
+      "importance": 0.023851322010159492
+    },
+    {
+      "feature": "Temp_last_value",
+      "importance": 0.022741395980119705
+    },
+    {
+      "feature": "Temp_time_since_last",
+      "importance": 0.022299813106656075
+    },
+    {
+      "feature": "SysABP_baseline_mean",
+      "importance": 0.021775027737021446
+    },
+    {
+      "feature": "GCS_dev_from_baseline",
+      "importance": 0.021650953218340874
+    },
+    {
+      "feature": "Urine_rolling_mean_3h",
+      "importance": 0.021093636751174927
+    },
+    {
+      "feature": "RespRate_time_since_last",
+      "importance": 0.01977286860346794
+    },
+    {
+      "feature": "GCS_baseline_mean",
+      "importance": 0.018664272502064705
+    },
+    {
+      "feature": "Temp_dev_from_baseline",
+      "importance": 0.017822280526161194
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "noise_settings": {
+    "intensity_pct": 50.0,
+    "inject_missingness": true,
+    "inject_spikes": true,
+    "inject_jitter": true,
+    "evaluated_patients": 30
+  },
+  "comparison": [
+    {
+      "system": "SilentWindow",
+      "clean_alerts_per_day": 0.202,
+      "noisy_alerts_per_day": 0.354,
+      "clean_false_alerts": 3,
+      "noisy_false_alerts": 3,
+      "false_alert_increase_pct": 0.0,
+      "clean_sensitivity": 0.1364,
+      "noisy_sensitivity": 0.2727
+    },
+    {
+      "system": "Plain ML (Instant Risk)",
+      "clean_alerts_per_day": 0.606,
+      "noisy_alerts_per_day": 0.034,
+      "clean_false_alerts": 0,
+      "noisy_false_alerts": 2,
+      "false_alert_increase_pct": 200.0,
+      "clean_sensitivity": 0.0455,
+      "noisy_sensitivity": 0.0
+    },
+    {
+      "system": "Simplified Threshold",
+      "clean_alerts_per_day": 0.606,
+      "noisy_alerts_per_day": 1.415,
+      "clean_false_alerts": 7,
+      "noisy_false_alerts": 16,
+      "false_alert_increase_pct": 128.6,
+      "clean_sensitivity": 0.4091,
+      "noisy_sensitivity": 0.8182
+    }
+  ]
+}

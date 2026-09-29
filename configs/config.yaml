@@ -1,0 +1,95 @@
+# SilentWindow Configuration
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  outcomes_file: "data/raw/Outcomes-train.txt"
+  records_dir: "data/raw/set-a"
+  train_split: 0.70
+  val_split: 0.15
+  test_split: 0.15
+  random_seed: 42
+  # For fast interactive evaluation and training while maintaining high sample size:
+  max_patients: 1000  # Can be expanded up to 3200
+
+pipeline:
+  baseline_window_hours: 6.0
+  rolling_windows_hours: [1.0, 3.0, 6.0]
+  time_resolution_hours: 1.0  # Hourly evaluation grid
+  max_telemetry_hours: 48.0
+
+trust_layer:
+  # Physiological conservative plausible ranges
+  plausible_ranges:
+    HR: [30.0, 220.0]
+    SysABP: [40.0, 240.0]
+    DiasABP: [20.0, 140.0]
+    MAP: [30.0, 160.0]
+    RespRate: [4.0, 50.0]
+    Temp: [32.0, 42.0]
+    SaO2: [60.0, 100.0]
+    GCS: [3.0, 15.0]
+    Glucose: [30.0, 800.0]
+    Urine: [0.0, 2000.0]
+    HCT: [10.0, 60.0]
+    WBC: [0.5, 100.0]
+    Platelets: [10.0, 1000.0]
+    Creatinine: [0.2, 15.0]
+    BUN: [2.0, 150.0]
+
+  # Maximum reasonable rate of change per hour before flagging jump artifact
+  max_jump_per_hour:
+    HR: 45.0
+    SysABP: 50.0
+    DiasABP: 35.0
+    MAP: 40.0
+    RespRate: 15.0
+    Temp: 2.0
+    SaO2: 15.0
+
+  # Credibility penalty weights
+  penalties:
+    implausible: 0.85
+    jump: 0.60
+    discordant: 0.40
+
+model:
+  type: "xgboost"  # fallback to hist_gradient_boosting if unavailable
+  xgboost_params:
+    max_depth: 4
+    learning_rate: 0.05
+    n_estimators: 150
+    subsample: 0.85
+    colsample_bytree: 0.85
+    scale_pos_weight: 3.0
+    random_state: 42
+  calibration_method: "sigmoid"  # 'sigmoid' or 'isotonic'
+
+evidence_accumulator:
+  neutral_risk_threshold: 0.22
+  decay_rate: 0.88  # per hour
+  persistence_boost_factor: 1.25
+  watch_threshold: 0.40
+  alert_threshold: 0.75
+  refractory_period_hours: 6.0
+  max_alerts_per_patient: 3
+
+baselines:
+  # Simplified threshold baseline
+  thresholds:
+    HR_high: 110.0
+    HR_low: 50.0
+    SysABP_low: 90.0
+    RespRate_high: 25.0
+    RespRate_low: 8.0
+    Temp_high: 38.5
+    Temp_low: 35.5
+  # Plain ML threshold
+  plain_ml_risk_threshold: 0.50
+
+noise_stress_test:
+  missingness_rate: 0.20
+  spike_rate: 0.08
+  spike_multiplier: 1.6
+  timing_jitter_hours: 0.3
+  noise_seed: 99

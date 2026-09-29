@@ -1,0 +1,8 @@
+flowchart LR
+  A[Raw ICU records\nIrregular observations] --> B[Trust layer\nPlausibility + credibility]
+  B --> C[Temporal features\nExposure outside range\nWorst-so-far\nRecent minus baseline]
+  C --> D[Static context\nAge + ICU type]
+  D --> E[XGBoost risk\nPlatt calibration]
+  E --> F[Sequential evidence\nPersistence + refractory window]
+  F --> G[Silent / Watch / Alert\nAudit trail]
+  H[Mortality proxy\nNo event timestamp] -. evaluation only .-> E

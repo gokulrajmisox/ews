@@ -1,0 +1,382 @@
+{
+  "dataset_name": "PhysioNet / Computing in Cardiology Challenge 2012 (Set A)",
+  "source_files": {
+    "outcomes_file": "data/raw\\Outcomes-train.txt",
+    "records_dir": "data/raw\\set-a"
+  },
+  "patients": {
+    "total_patient_files": 3200
+  },
+  "outcomes": {
+    "columns": [
+      "RecordID",
+      "SAPS-I",
+      "SOFA",
+      "Length_of_stay",
+      "Survival",
+      "In-hospital_death"
+    ],
+    "num_patients": 3200,
+    "in_hospital_death_counts": {
+      "0": 2757,
+      "1": 443
+    },
+    "mortality_rate": 0.1384,
+    "length_of_stay_summary": {
+      "min": -1.0,
+      "median": 10.0,
+      "max": 154.0
+    },
+    "sofa_summary": {
+      "median": 6.0,
+      "mean": 6.3540625
+    }
+  },
+  "parameters": {
+    "RecordID": {
+      "count_in_sample": 250,
+      "min": 132539.0,
+      "p01": 132544.96,
+      "p50": 132909.0,
+      "p99": 133321.02,
+      "max": 133326.0
+    },
+    "Age": {
+      "count_in_sample": 250,
+      "min": 21.0,
+      "p01": 21.490000000000002,
+      "p50": 67.0,
+      "p99": 90.0,
+      "max": 90.0
+    },
+    "Gender": {
+      "count_in_sample": 250,
+      "min": 0.0,
+      "p01": 0.0,
+      "p50": 1.0,
+      "p99": 1.0,
+      "max": 1.0
+    },
+    "Height": {
+      "count_in_sample": 250,
+      "min": -1.0,
+      "p01": -1.0,
+      "p50": 151.15,
+      "p99": 185.4,
+      "max": 203.0
+    },
+    "ICUType": {
+      "count_in_sample": 250,
+      "min": 1.0,
+      "p01": 1.0,
+      "p50": 3.0,
+      "p99": 4.0,
+      "max": 4.0
+    },
+    "Weight": {
+      "count_in_sample": 8809,
+      "min": -1.0,
+      "p01": 55.8,
+      "p50": 79.0,
+      "p99": 162.2,
+      "max": 162.2
+    },
+    "GCS": {
+      "count_in_sample": 3743,
+      "min": 3.0,
+      "p01": 3.0,
+      "p50": 14.0,
+      "p99": 15.0,
+      "max": 15.0
+    },
+    "HR": {
+      "count_in_sample": 14042,
+      "min": 49.0,
+      "p01": 56.0,
+      "p50": 80.0,
+      "p99": 154.0,
+      "max": 161.0
+    },
+    "NIDiasABP": {
+      "count_in_sample": 5666,
+      "min": 0.0,
+      "p01": 25.0,
+      "p50": 51.0,
+      "p99": 90.00999999999999,
+      "max": 129.0
+    },
+    "NIMAP": {
+      "count_in_sample": 5558,
+      "min": 35.67,
+      "p01": 46.9967,
+      "p50": 70.0,
+      "p99": 112.716,
+      "max": 144.3
+    },
+    "NISysABP": {
+      "count_in_sample": 5673,
+      "min": 0.0,
+      "p01": 74.99,
+      "p50": 112.0,
+      "p99": 180.01,
+      "max": 206.0
+    },
+    "RespRate": {
+      "count_in_sample": 3617,
+      "min": 0.0,
+      "p01": 10.0,
+      "p50": 20.0,
+      "p99": 39.0,
+      "max": 44.0
+    },
+    "Temp": {
+      "count_in_sample": 5198,
+      "min": 34.2,
+      "p01": 34.9,
+      "p50": 37.0,
+      "p99": 38.7,
+      "max": 39.4
+    },
+    "Urine": {
+      "count_in_sample": 8612,
+      "min": 0.0,
+      "p01": 5.0,
+      "p50": 80.0,
+      "p99": 635.1499999999999,
+      "max": 2340.0
+    },
+    "HCT": {
+      "count_in_sample": 1174,
+      "min": 11.8,
+      "p01": 19.294,
+      "p50": 30.0,
+      "p99": 43.003,
+      "max": 46.8
+    },
+    "BUN": {
+      "count_in_sample": 869,
+      "min": 2.0,
+      "p01": 4.0,
+      "p50": 19.0,
+      "p99": 105.0,
+      "max": 136.0
+    },
+    "Creatinine": {
+      "count_in_sample": 880,
+      "min": 0.2,
+      "p01": 0.3,
+      "p50": 1.0,
+      "p99": 6.121000000000003,
+      "max": 10.3
+    },
+    "Glucose": {
+      "count_in_sample": 812,
+      "min": 29.0,
+      "p01": 56.44,
+      "p50": 128.5,
+      "p99": 349.0,
+      "max": 1097.0
+    },
+    "HCO3": {
+      "count_in_sample": 844,
+      "min": 5.0,
+      "p01": 10.0,
+      "p50": 24.0,
+      "p99": 37.0,
+      "max": 44.0
+    },
+    "Mg": {
+      "count_in_sample": 854,
+      "min": 0.8,
+      "p01": 1.3,
+      "p50": 2.0,
+      "p99": 3.2470000000000026,
+      "max": 4.2
+    },
+    "Platelets": {
+      "count_in_sample": 866,
+      "min": 22.0,
+      "p01": 32.65,
+      "p50": 171.0,
+      "p99": 623.1000000000001,
+      "max": 992.0
+    },
+    "K": {
+      "count_in_sample": 891,
+      "min": 2.3,
+      "p01": 2.8,
+      "p50": 4.1,
+      "p99": 6.0100000000000025,
+      "max": 8.6
+    },
+    "Na": {
+      "count_in_sample": 846,
+      "min": 123.0,
+      "p01": 128.0,
+      "p50": 139.0,
+      "p99": 159.74999999999977,
+      "max": 177.0
+    },
+    "WBC": {
+      "count_in_sample": 802,
+      "min": 0.2,
+      "p01": 0.5,
+      "p50": 12.0,
+      "p99": 59.586000000000105,
+      "max": 155.6
+    },
+    "Albumin": {
+      "count_in_sample": 156,
+      "min": 1.6,
+      "p01": 1.71,
+      "p50": 2.9,
+      "p99": 4.4,
+      "max": 4.6
+    },
+    "ALP": {
+      "count_in_sample": 213,
+      "min": 19.0,
+      "p01": 22.560000000000002,
+      "p50": 83.0,
+      "p99": 1021.5599999999984,
+      "max": 2205.0
+    },
+    "ALT": {
+      "count_in_sample": 221,
+      "min": 5.0,
+      "p01": 8.0,
+      "p50": 50.0,
+      "p99": 6806.800000000027,
+      "max": 8126.0
+    },
+    "AST": {
+      "count_in_sample": 220,
+      "min": 4.0,
+      "p01": 11.0,
+      "p50": 83.0,
+      "p99": 13450.300000000003,
+      "max": 18430.0
+    },
+    "Bilirubin": {
+      "count_in_sample": 217,
+      "min": 0.1,
+      "p01": 0.11600000000000002,
+      "p50": 0.9,
+      "p99": 36.228000000000016,
+      "max": 41.9
+    },
+    "Lactate": {
+      "count_in_sample": 515,
+      "min": 0.5,
+      "p01": 0.6,
+      "p50": 2.1,
+      "p99": 16.46200000000002,
+      "max": 24.1
+    },
+    "FiO2": {
+      "count_in_sample": 1881,
+      "min": 0.28,
+      "p01": 0.3,
+      "p50": 0.5,
+      "p99": 1.0,
+      "max": 1.0
+    },
+    "MechVent": {
+      "count_in_sample": 1841,
+      "min": 1.0,
+      "p01": 1.0,
+      "p50": 1.0,
+      "p99": 1.0,
+      "max": 1.0
+    },
+    "pH": {
+      "count_in_sample": 1500,
+      "min": 7.0,
+      "p01": 7.1898,
+      "p50": 7.4,
+      "p99": 7.53,
+      "max": 7.57
+    },
+    "PaCO2": {
+      "count_in_sample": 1417,
+      "min": 20.0,
+      "p01": 25.0,
+      "p50": 39.0,
+      "p99": 66.00999999999999,
+      "max": 86.0
+    },
+    "PaO2": {
+      "count_in_sample": 1426,
+      "min": 0.0,
+      "p01": 53.99,
+      "p50": 119.0,
+      "p99": 439.1099999999999,
+      "max": 496.0
+    },
+    "SaO2": {
+      "count_in_sample": 513,
+      "min": 74.0,
+      "p01": 87.0,
+      "p50": 97.0,
+      "p99": 100.0,
+      "max": 100.0
+    },
+    "DiasABP": {
+      "count_in_sample": 9331,
+      "min": 0.0,
+      "p01": 34.99,
+      "p50": 58.0,
+      "p99": 100.0,
+      "max": 120.0
+    },
+    "MAP": {
+      "count_in_sample": 9355,
+      "min": 0.0,
+      "p01": 52.99,
+      "p50": 77.0,
+      "p99": 139.01999999999998,
+      "max": 267.0
+    },
+    "SysABP": {
+      "count_in_sample": 9346,
+      "min": 0.0,
+      "p01": 73.99,
+      "p50": 113.0,
+      "p99": 202.02999999999997,
+      "max": 218.0
+    },
+    "Cholesterol": {
+      "count_in_sample": 16,
+      "min": 84.0,
+      "p01": 85.2,
+      "p50": 172.0,
+      "p99": 233.8,
+      "max": 235.0
+    },
+    "TroponinI": {
+      "count_in_sample": 39,
+      "min": 0.3,
+      "p01": 0.376,
+      "p50": 4.8,
+      "p99": 32.85599999999999,
+      "max": 34.3
+    },
+    "TroponinT": {
+      "count_in_sample": 111,
+      "min": 0.01,
+      "p01": 0.02,
+      "p50": 0.18,
+      "p99": 8.055000000000012,
+      "max": 9.33
+    }
+  },
+  "sampling": {
+    "mean_records_per_patient": 437.296,
+    "median_records_per_patient": 428.5,
+    "mean_max_hours": 47.23226666666666,
+    "median_max_hours": 47.516666666666666
+  },
+  "notes": [
+    "Lead time is estimated relative to the available outcome/proxy because an exact event timestamp is unavailable."
+  ]
+}
