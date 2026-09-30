@@ -25,6 +25,27 @@ The repository contains a FastAPI service, a static dashboard, the offline ML/ev
 
 The saved accuracy report also notes that the current service has **no live telemetry-ingestion route** and that the held-out results are not evidence of real-time clinical performance. Detailed reports are grouped under [`docs/reports/`](docs/reports/).
 
+## Hackathon evaluation alignment
+
+The project is designed to be evaluated on **evidence over assumptions**. The table below maps SilentWindow to the judging framework while keeping the current research-prototype boundaries explicit.
+
+| Evaluation area | Weight | SilentWindow evidence and position |
+|---|---:|---|
+| **Problem significance** | 15% | Addresses ICU alarm fatigue by reducing reactions to isolated, noisy observations. |
+| **Domain understanding** | 10% | Uses plausibility checks, missingness, patient-specific baselines, temporal trajectories, credibility weighting, persistence, refractory periods, and alert budgets. |
+| **Innovation & originality** | 10% | Combines **Trust × Risk × Persistence** into a stateful `STABLE → WATCH → ALERT` workflow rather than relying only on an instantaneous threshold. |
+| **Proposed solution** | 15% | Provides a FastAPI service, retrospective dashboard, chronological replay, explanations, policy analysis, and an incremental simulation API. |
+| **Technical feasibility** | 10% | Includes a reproducible Python pipeline, XGBoost artifacts, calibration, tests, Docker support, CI, and Render deployment. |
+| **Impact & outcomes** | 10% | The intended impact is lower alert burden and more persistent evidence. Current saved results show a trade-off, not superiority: 13.6% sensitivity, 15.0% precision, and 51 false-alert events on the held-out replay. |
+| **Scalability** | 10% | The service is containerized and the API is versioned, but patient state is currently process-local; durable multi-worker scaling is a documented follow-up. |
+| **Security & privacy** | 10% | Secrets use environment variables, raw data is excluded from Git and Docker, CORS is configurable, and optional Supabase RLS is documented. Authentication, rate limiting, and production audit controls are not yet implemented. |
+| **Validation / evidence** | 5% | Includes patient-level splits, leakage tests, held-out chronological replay, calibration metrics, ablations, noise testing, and a 500-point policy sweep. Results are retrospective and proxy-based, not clinical validation. |
+| **Team capability** | 5% | The repository demonstrates implemented engineering, ML, evaluation, documentation, CI, and deployment work. Team presentation and contribution evidence should be supplied separately by the team. |
+
+### Evaluation takeaway
+
+SilentWindow’s strongest evidence is its **end-to-end, interpretable, reproducible prototype** and its explicit handling of alarm burden and signal trust. Its most important limitations are also stated plainly: the raw dataset is excluded, the outcome timestamp is a proxy, the streaming state is in-memory, and the system is not clinically validated. These limitations should be presented as responsible engineering boundaries rather than hidden claims.
+
 ## Why SilentWindow?
 
 A single abnormal reading can be caused by motion, a loose sensor, missingness, or an implausible jump. A direct threshold or instantaneous model can therefore produce alerts that are frequent but difficult to act on.
