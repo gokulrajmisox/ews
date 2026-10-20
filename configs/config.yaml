@@ -12,6 +12,17 @@ data:
   # For fast interactive evaluation and training while maintaining high sample size:
   max_patients: 1000  # Can be expanded up to 3200
 
+labeling:
+  # Training target definition. "future_window_proxy" (default) trains on a
+  # near-term early-warning horizon label: an hourly row is positive only when
+  # the patient eventually dies in hospital AND the end-of-telemetry endpoint
+  # falls within horizon_hours after the current eval time. "eventual_outcome"
+  # restores the legacy label (final in-hospital outcome broadcast to every
+  # hourly row) for comparison runs. Cache filenames encode this section so
+  # switching targets never silently reuses stale feature frames.
+  target: "future_window_proxy"
+  horizon_hours: 12.0
+
 pipeline:
   baseline_window_hours: 6.0
   rolling_windows_hours: [1.0, 3.0, 6.0]
