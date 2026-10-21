@@ -2,8 +2,24 @@
 labeling.py - Target Definition and Ground-Truth Association.
 
 TARGET SPECIFICATION:
-Primary target: In-hospital mortality / acute clinical deterioration (In-hospital_death: 1 vs 0).
-Secondary metrics: SOFA score, SAPS-I score, and Length of Stay.
+
+Default training target (configs/config.yaml: labeling.target =
+"future_window_proxy"): a near-term early-warning horizon label. An hourly
+row is positive only when the patient eventually dies in hospital AND the
+available telemetry endpoint proxy falls strictly after the current eval
+time and within ``labeling.horizon_hours``. The production training path
+(build_split_dataset in ml/train.py) uses the patient's end-of-telemetry
+time as the endpoint proxy — the same convention as replay_patient in
+ml/replay.py. The assigned column is also aliased to ``target`` so training
+code reads a stable column name regardless of configuration.
+
+Legacy target (labeling.target = "eventual_outcome"): the patient's final
+in-hospital outcome broadcast to every hourly row (assign_hourly_labels).
+Kept as an explicit opt-in for comparing against the horizon label.
+
+Secondary metadata attached to every labeled frame: sofa, saps,
+length_of_stay. These are outcome-adjacent and are excluded from the model
+feature set in ml/train.py (meta_cols).
 
 IMPORTANT SCIENTIFIC NOTE:
 Lead time is estimated relative to the available outcome/proxy (end of telemetry / ICU stay)
@@ -13,7 +29,7 @@ Never pretend an unavailable event timestamp exists.
 
 import os
 import pandas as pd
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 class OutcomeLabeler:
     def __init__(self, outcomes_file: str = "data/raw/Outcomes-train.txt"):
@@ -83,3 +99,43 @@ class OutcomeLabeler:
             "Proxy endpoint only; exact deterioration timestamp unavailable."
         )
         return df
+
+    def assign_training_labels(
+        self,
+        df_patient_features: pd.DataFrame,
+        patient_id: int,
+        target_kind: str = "future_window_proxy",
+        horizon_hours: float = 12.0,
+        event_proxy_hours: Optional[float] = None,
+    ) -> pd.DataFrame:
+        """Assign the configured training target for one patient's feature rows.
+
+        target_kind="future_window_proxy" (default): builds the near-term
+        horizon label via :meth:`assign_future_window_proxy_labels`, using
+        ``event_proxy_hours`` as the endpoint proxy (the production training
+        path passes the patient's end-of-telemetry time, the same convention
+        as ``replay_patient`` in ml/replay.py). The proxy label is aliased to
+        the ``target`` column so training code reads a stable column name, and
+        the eventual-outcome metadata (sofa/saps/length_of_stay) is attached
+        for reference — both stay out of the model feature set (see meta_cols
+        in ml/train.py).
+
+        target_kind="eventual_outcome": legacy behaviour — the patient's final
+        in-hospital outcome broadcast to every hourly row
+        (:meth:`assign_hourly_labels`).
+        """
+        if target_kind == "future_window_proxy":
+            if event_proxy_hours is None:
+                raise ValueError("future_window_proxy target requires event_proxy_hours")
+            df = self.assign_future_window_proxy_labels(
+                df_patient_features, patient_id, event_proxy_hours, horizon_hours
+            )
+            outcome = self.get_patient_outcome(patient_id)
+            df["target"] = df["future_window_proxy_target"]
+            df["sofa"] = outcome["sofa"]
+            df["saps"] = outcome["saps"]
+            df["length_of_stay"] = outcome["length_of_stay"]
+            return df
+        if target_kind == "eventual_outcome":
+            return self.assign_hourly_labels(df_patient_features, patient_id)
+        raise ValueError(f"Unknown labeling target_kind: {target_kind!r}")
