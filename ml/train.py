@@ -4,6 +4,14 @@ train.py - Leakage-Free Model Training and Probability Calibration.
 Trains XGBoost deterioration classifier on patient-level training split,
 calibrates risk estimates on patient-level validation split,
 and evaluates discrimination and calibration metrics.
+
+Training target (configs/config.yaml, `labeling` section): the default is
+the future-window proxy label — an hourly row is positive only when the
+patient eventually dies in hospital AND the end-of-telemetry endpoint falls
+within `horizon_hours` after the current eval time (a near-term early-warning
+target; exact event timestamps are unavailable in the challenge dataset).
+Set `labeling.target: eventual_outcome` to train on the legacy label (final
+in-hospital outcome broadcast to every hourly row) for comparison.
 """
 
 import os
@@ -20,6 +28,18 @@ from ml.features import FeatureExtractor
 from ml.labeling import OutcomeLabeler
 from ml.calibration import ModelCalibrator
 
+def get_labeling_config(config: dict) -> Tuple[str, float]:
+    """Read the training-target configuration.
+
+    Returns (target_kind, horizon_hours). Defaults to the future-window proxy
+    label with a 12-hour horizon; "eventual_outcome" restores the legacy
+    final-outcome-per-row label.
+    """
+    labeling_cfg = config.get("labeling", {})
+    target_kind = labeling_cfg.get("target", "future_window_proxy")
+    horizon_hours = float(labeling_cfg.get("horizon_hours", 12.0))
+    return target_kind, horizon_hours
+
 def build_split_dataset(
     patient_ids: List[int],
     config: dict,
@@ -30,6 +50,7 @@ def build_split_dataset(
     step_hours: float = 2.0
 ) -> pd.DataFrame:
     """Builds tabular feature matrix for a list of patient IDs."""
+    target_kind, horizon_hours = get_labeling_config(config)
     all_dfs = []
     for pid in patient_ids:
         filepath = os.path.join(records_dir, f"{pid}.txt")
@@ -40,7 +61,17 @@ def build_split_dataset(
         df_p = extractor.generate_patient_chronological_features(
             assessments, static_info, pid, start_hour=4.0, end_hour=48.0, step_hours=step_hours
         )
-        df_labeled = labeler.assign_hourly_labels(df_p, pid)
+        # End-of-telemetry endpoint proxy for the future-window label — the
+        # same convention as replay_patient (ml/replay.py): the configured
+        # max horizon capped by the patient's last observed hour.
+        max_time = float(df_obs["time_hours"].max()) if not df_obs.empty else 48.0
+        event_proxy_hours = min(48.0, max_time)
+        df_labeled = labeler.assign_training_labels(
+            df_p, pid,
+            target_kind=target_kind,
+            horizon_hours=horizon_hours,
+            event_proxy_hours=event_proxy_hours,
+        )
         all_dfs.append(df_labeled)
 
     if not all_dfs:
@@ -69,8 +100,12 @@ def train_and_calibrate(config_path: str = "configs/config.yaml") -> Dict:
     extractor = FeatureExtractor(config)
     labeler = OutcomeLabeler(config["data"]["outcomes_file"])
 
-    train_cache = os.path.join(processed_dir, "train_features.parquet")
-    val_cache = os.path.join(processed_dir, "val_features.parquet")
+    target_kind, horizon_hours = get_labeling_config(config)
+    # Cache filenames encode the target definition so a config change never
+    # silently reuses feature frames labeled under a different target.
+    target_suffix = f"{target_kind}_h{int(horizon_hours)}"
+    train_cache = os.path.join(processed_dir, f"train_features_{target_suffix}.parquet")
+    val_cache = os.path.join(processed_dir, f"val_features_{target_suffix}.parquet")
 
     if os.path.exists(train_cache) and os.path.exists(val_cache):
         print("Loading cached train and validation feature sets...")
@@ -84,7 +119,13 @@ def train_and_calibrate(config_path: str = "configs/config.yaml") -> Dict:
         df_val = build_split_dataset(val_ids, config, records_dir, trust_proc, extractor, labeler, step_hours=2.0)
         df_val.to_parquet(val_cache, index=False)
 
-    meta_cols = {"patient_id", "eval_time", "target", "sofa", "saps", "length_of_stay", "survival"}
+    meta_cols = {
+        "patient_id", "eval_time", "target", "sofa", "saps", "length_of_stay", "survival",
+        # Future-window proxy label metadata — never model features (the
+        # disclaimer column is a string and must stay out of XGBoost input).
+        "future_window_proxy_target", "future_window_horizon_hours",
+        "future_window_proxy_disclaimer",
+    }
     feature_cols = [c for c in df_train.columns if c not in meta_cols]
 
     X_train = df_train[feature_cols].copy()
@@ -93,6 +134,9 @@ def train_and_calibrate(config_path: str = "configs/config.yaml") -> Dict:
     y_val = df_val["target"].values
 
     print(f"Dataset shapes: Train={X_train.shape} (Pos={y_train.sum()}), Val={X_val.shape} (Pos={y_val.sum()})")
+    print(f"Training target: {target_kind}"
+          + (f" (horizon {horizon_hours}h, end-of-telemetry endpoint proxy)"
+             if target_kind == "future_window_proxy" else ""))
 
     # Train XGBoost
     import xgboost as xgb
@@ -152,6 +196,17 @@ def train_and_calibrate(config_path: str = "configs/config.yaml") -> Dict:
     results_summary = {
         "model_type": "xgboost",
         "calibration_method": calib_method,
+        "target_definition": {
+            "kind": target_kind,
+            "horizon_hours": horizon_hours,
+            "endpoint_proxy": "end_of_telemetry",
+            "disclaimer": (
+                "Rows are positive only when the patient dies in hospital AND the "
+                "end-of-telemetry endpoint falls within the horizon after the "
+                "current eval time. An exact deterioration/death timestamp is "
+                "unavailable in the challenge dataset."
+            ),
+        },
         "n_features": len(feature_cols),
         "validation_metrics": {
             "roc_auc": round(val_roc, 4),

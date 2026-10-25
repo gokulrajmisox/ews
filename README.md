@@ -409,6 +409,7 @@ The root is intentionally reserved for project entry points, packaging, deployme
 - The test suite is runnable after dependency installation; only the raw-data split test is skipped when the ignored dataset is absent.
 - The current checkout does not contain `data/raw`, so training and full reproduction cannot start until the dataset is supplied.
 - The saved evaluation is retrospective, small, and outcome-proxy based.
+- The default training target is a future-window proxy label (a row is positive only when the patient eventually dies in hospital and the end-of-telemetry endpoint falls within 12h of the eval time); set `labeling.target: eventual_outcome` in `configs/config.yaml` for the legacy final-outcome-per-row label.
 - The new streaming endpoint is a local in-memory simulation; no durable patient-state service, timestamped live ground truth, prospective shadow mode, or clinical validation is included.
 - The model-improvement benchmark in [`docs/reports/model_improvement_report.md`](docs/reports/model_improvement_report.md) is explicitly marked offline and is **not** copied into the saved production model artifacts.
 
