@@ -6,7 +6,7 @@
 [![Backend: FastAPI](https://img.shields.io/badge/backend-FastAPI-009688)](#architecture)
 [![Model: XGBoost](https://img.shields.io/badge/model-XGBoost-2f6db0)](#architecture)
 [![Dataset: PhysioNet 2012](https://img.shields.io/badge/dataset-PhysioNet%202012-0891b2)](#data-and-evaluation)
-
+[![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/gokulrajmisox/badge.svg)](https://hub.xerj.org/contributors/gokulrajmisox)
 SilentWindow is a research demonstrator for reducing alarm fatigue in ICU telemetry. It evaluates a three-layer pipeline that **assesses signal credibility, builds patient-specific temporal features, and accumulates evidence before changing alert state**.
 
 
